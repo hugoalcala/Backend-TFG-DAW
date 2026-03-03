@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Configurar hosts confiables
         $middleware->trustHosts(at: ['localhost', 'localhost:5173', '127.0.0.1']);
+        
+        // Registrar middleware personalizado
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\IsAdmin::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Manejar errores de autenticación en API
