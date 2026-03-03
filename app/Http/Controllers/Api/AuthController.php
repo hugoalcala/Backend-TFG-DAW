@@ -47,6 +47,7 @@ class AuthController extends Controller
             'message' => 'User registered successfully',
             'user' => $user,
             'token' => $user->createToken('auth_token')->plainTextToken,
+            'role' => $user->role,
         ], 201); // Status 201: Created
     }
 
@@ -87,6 +88,7 @@ class AuthController extends Controller
             'message' => 'Login successful',
             'user' => $user,
             'token' => $user->createToken('auth_token')->plainTextToken,
+            'role' => $user->role,
         ]);
     }
 
@@ -223,6 +225,7 @@ class AuthController extends Controller
                 'message' => 'Google authentication successful',
                 'user' => $user,
                 'token' => $token,
+                'role' => $user->role,
                 'isNewUser' => $validated['type'] === 'register', // Indicar si fue nuevo usuario
             ]);
         } catch (\Exception $e) {

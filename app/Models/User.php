@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
         'google_id',
         'google_token',
         'google_refresh_token',
@@ -50,5 +51,29 @@ class User extends Authenticatable
             'password' => 'hashed',
             'google_token_expires_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Verifica si el usuario es administrador
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Verifica si el usuario es profesor
+     */
+    public function isTeacher(): bool
+    {
+        return $this->role === 'teacher';
+    }
+
+    /**
+     * Verifica si el usuario es usuario normal
+     */
+    public function isUser(): bool
+    {
+        return $this->role === 'user';
     }
 }
