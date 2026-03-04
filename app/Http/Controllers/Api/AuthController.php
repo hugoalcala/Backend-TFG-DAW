@@ -114,6 +114,79 @@ class AuthController extends Controller
     }
 
     /**
+     * Verifica que el email esté registrado en la base de datos
+     * 
+     * @param Request $request Contiene email
+     * @return \Illuminate\Http\JsonResponse Mensaje de confirmación o error
+     */
+    public function forgotPassword(Request $request)
+    {
+        Log::info('Forgot password iniciado', ['request_data' => $request->all()]);
+        
+        // Validar que el email sea válido
+        $validated = $request->validate([
+            'email' => 'required|string|email',
+        ]);
+
+        // Buscar usuario por email
+        $user = User::where('email', $validated['email'])->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'El email no está registrado en nuestra plataforma.',
+            ], 404);
+        }
+
+        Log::info('Email verificado correctamente', ['email' => $validated['email']]);
+
+        return response()->json([
+            'message' => 'Email verificado correctamente. Puedes proceder a cambiar tu contraseña.',
+            'email' => $validated['email'],
+        ]);
+    }
+
+    /**
+     * Cambia la contraseña del usuario
+     * 
+     * @param Request $request Contiene email, password y password_confirmation
+     * @return \Illuminate\Http\JsonResponse Usuario actualizado y mensaje de confirmación
+     */
+    public function resetPassword(Request $request)
+    {
+        Log::info('Reset password iniciado', ['email' => $request->email]);
+        
+        // Validar datos de entrada
+        $validated = $request->validate([
+            'email' => 'required|string|email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Buscar usuario por email
+        $user = User::where('email', $validated['email'])->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Usuario no encontrado.',
+            ], 404);
+        }
+
+        // Actualizar contraseña
+        $user->password = Hash::make($validated['password']);
+        $user->save();
+
+        Log::info('Contraseña actualizada correctamente', ['email' => $validated['email']]);
+
+        return response()->json([
+            'message' => 'Contraseña actualizada correctamente.',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+        ]);
+    }
+
+    /**
      * Obtiene la URL de redirección para autenticación con Google
      * 
      * @return \Illuminate\Http\JsonResponse URL de redirección de Google

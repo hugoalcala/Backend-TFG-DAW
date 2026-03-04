@@ -9,6 +9,10 @@ use App\Http\Controllers\Api\AdminController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Rutas de recuperación de contraseña
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
 // Rutas de autenticación con Google
 Route::get('/auth/google', [AuthController::class, 'googleRedirect']);
 Route::post('/auth/google/callback', [AuthController::class, 'googleCallback']);
