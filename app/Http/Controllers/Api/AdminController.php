@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\AdminService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use App\Models\TeacherRequest;
 
 class AdminController extends Controller
 {
@@ -250,5 +252,56 @@ class AdminController extends Controller
         return response()->json([
             'message' => 'Post deleted successfully',
         ]);
+    }
+
+    /**
+     * Descarga el certificado de una solicitud de profesor
+     * 
+     * @param int $id ID de la solicitud
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
+     */
+    public function downloadCertificate($id)
+    {
+        try {
+            // Buscar la solicitud de profesor
+            $teacherRequest = TeacherRequest::find($id);
+
+            if (!$teacherRequest) {
+                return response()->json([
+                    'message' => 'Solicitud no encontrada'
+                ], 404);
+            }
+
+            // Verificar que el certificado existe en el storage
+            if (!Storage::disk('local')->exists($teacherRequest->certificate_path)) {
+                Log::error('Certificate file not found', [
+                    'request_id' => $id,
+                    'certificate_path' => $teacherRequest->certificate_path
+                ]);
+
+                return response()->json([
+                    'message' => 'Certificado no encontrado'
+                ], 404);
+            }
+
+            // Obtener el path completo del archivo
+            $filePath = Storage::disk('local')->path($teacherRequest->certificate_path);
+
+            // Devolver el archivo como respuesta
+            return response()->file($filePath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="certificado_' . $id . '.pdf"'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error downloading certificate', [
+                'request_id' => $id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'message' => 'Error al descargar el certificado'
+            ], 500);
+        }
     }
 }
