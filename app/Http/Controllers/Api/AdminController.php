@@ -262,6 +262,13 @@ class AdminController extends Controller
      */
     public function downloadCertificate($id)
     {
+        // Validar que el ID sea un número válido
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => 'ID de solicitud inválido'
+            ], 400);
+        }
+
         try {
             // Buscar la solicitud de profesor
             $teacherRequest = TeacherRequest::find($id);
@@ -272,11 +279,58 @@ class AdminController extends Controller
                 ], 404);
             }
 
+            // Validar el path del certificado por seguridad
+            $certificatePath = $teacherRequest->certificate_path;
+
+            // Validar que el path no esté vacío
+            if (empty($certificatePath)) {
+                Log::error('Certificate path is empty', ['request_id' => $id]);
+                return response()->json([
+                    'message' => 'Ruta del certificado inválida'
+                ], 400);
+            }
+
+            // Validar que termine en .pdf
+            if (!str_ends_with(strtolower($certificatePath), '.pdf')) {
+                Log::error('Certificate path invalid extension', [
+                    'request_id' => $id,
+                    'certificate_path' => $certificatePath
+                ]);
+                return response()->json([
+                    'message' => 'Formato de certificado inválido'
+                ], 400);
+            }
+
+            // Validar que no contenga segmentos ascendentes (..) o rutas absolutas
+            if (str_contains($certificatePath, '..') || 
+                str_starts_with($certificatePath, '/') || 
+                preg_match('/^[a-zA-Z]:/', $certificatePath)) {
+                Log::error('Certificate path contains invalid segments', [
+                    'request_id' => $id,
+                    'certificate_path' => $certificatePath
+                ]);
+                return response()->json([
+                    'message' => 'Ruta del certificado inválida'
+                ], 400);
+            }
+
+            // Normalizar el path: asegurar que esté dentro del directorio certificates
+            $normalizedPath = str_replace('\\', '/', $certificatePath);
+            if (!str_starts_with($normalizedPath, 'certificates/')) {
+                Log::error('Certificate path not in expected directory', [
+                    'request_id' => $id,
+                    'certificate_path' => $certificatePath
+                ]);
+                return response()->json([
+                    'message' => 'Ruta del certificado inválida'
+                ], 400);
+            }
+
             // Verificar que el certificado existe en el storage
-            if (!Storage::disk('local')->exists($teacherRequest->certificate_path)) {
+            if (!Storage::disk('local')->exists($certificatePath)) {
                 Log::error('Certificate file not found', [
                     'request_id' => $id,
-                    'certificate_path' => $teacherRequest->certificate_path
+                    'certificate_path' => $certificatePath
                 ]);
 
                 return response()->json([
@@ -284,8 +338,8 @@ class AdminController extends Controller
                 ], 404);
             }
 
-            // Obtener el path completo del archivo
-            $filePath = Storage::disk('local')->path($teacherRequest->certificate_path);
+            // Obtener el path completo del archivo de forma segura
+            $filePath = Storage::disk('local')->path($certificatePath);
 
             // Devolver el archivo como respuesta
             return response()->file($filePath, [
