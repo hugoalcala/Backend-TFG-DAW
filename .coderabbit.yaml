@@ -23,6 +23,13 @@ reviews:
   # Colapsar el walkthrough para no saturar
   collapse_walkthrough: false
   
+  # Habilitar revisión automática en ramas específicas
+  auto_review:
+    enabled: true
+    base_branches:
+      - dev
+      - main
+  
   # Filtros de rutas - Excluir archivos que no necesitan revisión
   path_filters:
     - "!**/*.lock"

@@ -27,6 +27,10 @@ class User extends Authenticatable
         'google_token',
         'google_refresh_token',
         'google_token_expires_at',
+        'teacher_status',
+        'subject',
+        'bio',
+        'price_per_hour',
     ];
 
     /**
@@ -50,7 +54,24 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'google_token_expires_at' => 'datetime',
+            'price_per_hour' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Relación con las solicitudes de profesor
+     */
+    public function teacherRequests()
+    {
+        return $this->hasMany(TeacherRequest::class);
+    }
+
+    /**
+     * Obtener la última solicitud de profesor
+     */
+    public function latestTeacherRequest()
+    {
+        return $this->hasOne(TeacherRequest::class)->latestOfMany();
     }
 
     /**
