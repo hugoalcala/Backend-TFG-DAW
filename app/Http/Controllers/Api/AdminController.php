@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\TeacherRequest;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -18,7 +20,7 @@ class AdminController extends Controller
     {
         $totalUsers = User::count();
         $totalTeachers = User::where('role', 'teacher')->count();
-        $pendingTeachers = 0; // TODO: Implementar cuando tengamos tabla de solicitudes
+        $pendingTeachers = TeacherRequest::where('status', 'pending')->count();
         $totalPosts = 0; // TODO: Implementar cuando tengamos tabla de posts
 
         return response()->json([
@@ -36,36 +38,54 @@ class AdminController extends Controller
      */
     public function getPendingTeachers()
     {
-        // TODO: Implementar cuando tengamos tabla de solicitudes de profesores
-        // Por ahora retornamos un array vacío
+        $requests = TeacherRequest::with('user')
+            ->where('status', 'pending')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return response()->json([
-            'pendingTeachers' => [],
+            'data' => $requests
         ]);
     }
 
     /**
      * Aprueba una solicitud de profesor
      * 
+     * @param Request $request
      * @param int $id ID de la solicitud
      * @return \Illuminate\Http\JsonResponse
      */
-    public function approveTeacher($id)
+    public function approveTeacher(Request $request, $id)
     {
-        // TODO: Implementar cuando tengamos tabla de solicitudes
-        // Por ahora solo actualizamos el rol del usuario si existe
-        $user = User::find($id);
+        $teacherRequest = TeacherRequest::findOrFail($id);
         
-        if (!$user) {
+        if ($teacherRequest->status !== 'pending') {
             return response()->json([
-                'message' => 'User not found',
-            ], 404);
+                'message' => 'Esta solicitud ya fue procesada'
+            ], 400);
         }
 
-        $user->update(['role' => 'teacher']);
+        DB::transaction(function () use ($teacherRequest, $request) {
+            // Actualizar usuario a profesor
+            $teacherRequest->user->update([
+                'role' => 'teacher',
+                'teacher_status' => 'approved',
+                'subject' => $teacherRequest->subject,
+                'bio' => $teacherRequest->bio,
+                'price_per_hour' => $teacherRequest->price_per_hour
+            ]);
+
+            // Actualizar solicitud
+            $teacherRequest->update([
+                'status' => 'approved',
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now()
+            ]);
+        });
 
         return response()->json([
-            'message' => 'Teacher approved successfully',
-            'user' => $user,
+            'message' => 'Profesor aprobado exitosamente',
+            'data' => $teacherRequest->fresh('user')
         ]);
     }
 
@@ -79,15 +99,28 @@ class AdminController extends Controller
     public function rejectTeacher(Request $request, $id)
     {
         $validated = $request->validate([
-            'reason' => 'nullable|string|max:500',
+            'admin_notes' => 'nullable|string|max:500',
         ]);
 
-        // TODO: Implementar cuando tengamos tabla de solicitudes
-        // Por ahora solo retornamos éxito
+        $teacherRequest = TeacherRequest::findOrFail($id);
         
+        if ($teacherRequest->status !== 'pending') {
+            return response()->json([
+                'message' => 'Esta solicitud ya fue procesada'
+            ], 400);
+        }
+
+        $teacherRequest->update([
+            'status' => 'rejected',
+            'admin_notes' => $validated['admin_notes'] ?? null,
+            'reviewed_by' => $request->user()->id,
+            'reviewed_at' => now()
+        ]);
+
+        $teacherRequest->user->update(['teacher_status' => 'rejected']);
+
         return response()->json([
-            'message' => 'Teacher request rejected',
-            'reason' => $validated['reason'] ?? 'No reason provided',
+            'message' => 'Solicitud rechazada'
         ]);
     }
 
@@ -160,10 +193,11 @@ class AdminController extends Controller
     /**
      * Elimina un usuario
      * 
+     * @param Request $request
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function deleteUser($id)
+    public function deleteUser(Request $request, $id)
     {
         $user = User::find($id);
 
@@ -174,7 +208,7 @@ class AdminController extends Controller
         }
 
         // No permitir que un admin se elimine a sí mismo
-        if ($user->id === auth()->id()) {
+        if ($user->id === $request->user()->id) {
             return response()->json([
                 'message' => 'You cannot delete your own account',
             ], 403);
