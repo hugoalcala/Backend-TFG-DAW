@@ -105,19 +105,23 @@ class TeacherRequestService
      */
     public function cancelRequest(User $user): bool
     {
-        $teacherRequest = TeacherRequest::where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->first();
+        $certificatePath = null;
 
-        if (!$teacherRequest) {
-            throw new \Exception('No tienes ninguna solicitud pendiente', 404);
-        }
+        // Transacción atómica: verificar existencia con lock, eliminar solicitud y actualizar usuario
+        DB::transaction(function () use ($user, &$certificatePath) {
+            // Verificar solicitud pendiente DENTRO de la transacción con lock para evitar TOCTOU
+            $teacherRequest = TeacherRequest::where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->lockForUpdate()
+                ->first();
 
-        // Guardar ruta del certificado para eliminarlo después de la transacción
-        $certificatePath = $teacherRequest->certificate_path;
+            if (!$teacherRequest) {
+                throw new \Exception('No tienes ninguna solicitud pendiente', 404);
+            }
 
-        // Eliminar solicitud y actualizar usuario en transacción
-        DB::transaction(function () use ($teacherRequest, $user) {
+            // Guardar ruta del certificado para eliminarlo después de la transacción
+            $certificatePath = $teacherRequest->certificate_path;
+
             $teacherRequest->delete();
             $user->update(['teacher_status' => null]);
         });
