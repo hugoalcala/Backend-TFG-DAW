@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\AdminService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use App\Models\TeacherRequest;
 
 class AdminController extends Controller
 {
@@ -250,5 +252,110 @@ class AdminController extends Controller
         return response()->json([
             'message' => 'Post deleted successfully',
         ]);
+    }
+
+    /**
+     * Descarga el certificado de una solicitud de profesor
+     * 
+     * @param int $id ID de la solicitud
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
+     */
+    public function downloadCertificate($id)
+    {
+        // Validar que el ID sea un número válido
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => 'ID de solicitud inválido'
+            ], 400);
+        }
+
+        try {
+            // Buscar la solicitud de profesor
+            $teacherRequest = TeacherRequest::find($id);
+
+            if (!$teacherRequest) {
+                return response()->json([
+                    'message' => 'Solicitud no encontrada'
+                ], 404);
+            }
+
+            // Validar el path del certificado por seguridad
+            $certificatePath = $teacherRequest->certificate_path;
+
+            // Validar que el path no esté vacío
+            if (empty($certificatePath)) {
+                Log::error('Certificate path is empty', ['request_id' => $id]);
+                return response()->json([
+                    'message' => 'Ruta del certificado inválida'
+                ], 400);
+            }
+
+            // Validar que termine en .pdf
+            if (!str_ends_with(strtolower($certificatePath), '.pdf')) {
+                Log::error('Certificate path invalid extension', [
+                    'request_id' => $id,
+                    'certificate_path' => $certificatePath
+                ]);
+                return response()->json([
+                    'message' => 'Formato de certificado inválido'
+                ], 400);
+            }
+
+            // Validar que no contenga segmentos ascendentes (..) o rutas absolutas
+            if (str_contains($certificatePath, '..') || 
+                str_starts_with($certificatePath, '/') || 
+                preg_match('/^[a-zA-Z]:/', $certificatePath)) {
+                Log::error('Certificate path contains invalid segments', [
+                    'request_id' => $id,
+                    'certificate_path' => $certificatePath
+                ]);
+                return response()->json([
+                    'message' => 'Ruta del certificado inválida'
+                ], 400);
+            }
+
+            // Normalizar el path: asegurar que esté dentro del directorio certificates
+            $normalizedPath = str_replace('\\', '/', $certificatePath);
+            if (!str_starts_with($normalizedPath, 'certificates/')) {
+                Log::error('Certificate path not in expected directory', [
+                    'request_id' => $id,
+                    'certificate_path' => $certificatePath
+                ]);
+                return response()->json([
+                    'message' => 'Ruta del certificado inválida'
+                ], 400);
+            }
+
+            // Verificar que el certificado existe en el storage
+            if (!Storage::disk('local')->exists($certificatePath)) {
+                Log::error('Certificate file not found', [
+                    'request_id' => $id,
+                    'certificate_path' => $certificatePath
+                ]);
+
+                return response()->json([
+                    'message' => 'Certificado no encontrado'
+                ], 404);
+            }
+
+            // Obtener el path completo del archivo de forma segura
+            $filePath = Storage::disk('local')->path($certificatePath);
+
+            // Devolver el archivo como respuesta
+            return response()->file($filePath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="certificado_' . $id . '.pdf"'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error downloading certificate', [
+                'request_id' => $id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'message' => 'Error al descargar el certificado'
+            ], 500);
+        }
     }
 }

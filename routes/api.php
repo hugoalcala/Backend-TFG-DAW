@@ -41,6 +41,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/pending-teachers', [AdminController::class, 'getPendingTeachers']);
     Route::post('/approve-teacher/{id}', [AdminController::class, 'approveTeacher']);
     Route::post('/reject-teacher/{id}', [AdminController::class, 'rejectTeacher']);
+    Route::get('/teacher-request/{id}/certificate', [AdminController::class, 'downloadCertificate']);
     
     // Gestión de usuarios
     Route::get('/users', [AdminController::class, 'getUsers']);
