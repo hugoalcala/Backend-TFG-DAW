@@ -1,180 +1,75 @@
 # CodeRabbit Configuration
 # Configuración para revisión automática de código en PRs hacia dev
 
-language: es # Respuestas en español
+language: es
 
 # Configuración de revisiones
 reviews:
-  # Revisar automáticamente todos los PRs
-  auto_review:
-    enabled: true
-    # Revisar PRs hacia la rama dev
-    base_branches:
-      - dev
-      - main
-  
   # Perfil de revisión
-  profile: chill # Opciones: chill, assertive, strict
+  profile: chill
   
   # Solicitar cambios si se encuentran problemas críticos
-  request_changes_workflow: true
+  request_changes_workflow: false
   
-  # Áreas de enfoque en la revisión
-  focus:
-    - security # Vulnerabilidades de seguridad
-    - performance # Problemas de rendimiento
-    - best-practices # Mejores prácticas
-    - bugs # Bugs potenciales
-    - style # Estilo de código
+  # Nivel de revisión alto para mejor análisis
+  high_level_summary: true
   
-  # Ignorar ciertos archivos en las revisiones
-  excluded_files:
-    - "**/*.lock"
-    - "**/*.json"
-    - "**/vendor/**"
-    - "**/node_modules/**"
-    - "**/storage/**"
-    - "**/bootstrap/cache/**"
-    - "**/*.min.js"
-    - "**/*.min.css"
-
-# Configuración de comentarios
-comments:
-  # Agrupar comentarios similares
+  # Generar poema sobre el PR (opcional, para hacerlo divertido)
+  poem: false
+  
+  # Generar resumen de revisión
+  review_status: true
+  
+  # Colapsar el walkthrough para no saturar
   collapse_walkthrough: false
   
-  # Estilo de comentarios
-  tone: constructive # Opciones: constructive, neutral
+  # Filtros de rutas - Excluir archivos que no necesitan revisión
+  path_filters:
+    - "!**/*.lock"
+    - "!**/vendor/**"
+    - "!**/node_modules/**"
+    - "!**/storage/**"
+    - "!**/bootstrap/cache/**"
+    - "!**/*.min.js"
+    - "!**/*.min.css"
+    - "!package-lock.json"
+    - "!composer.lock"
   
-  # Incluir sugerencias de código
-  code_suggestions: true
-
-# Configuración específica para Laravel/PHP
-php:
-  # Versión de PHP del proyecto
-  version: "8.2"
-  
-  # Estándares de código
-  standards:
-    - PSR-12
-    - Laravel
-  
-  # Verificaciones específicas
-  checks:
-    - security
-    - n+1-queries
-    - sql-injection
-    - xss
-    - csrf
-    - authentication
-    - authorization
-    - validation
+  # Instrucciones personalizadas para el revisor
+  path_instructions:
+    - path: "app/Http/Controllers/**"
+      instructions: |
+        Revisar cuidadosamente:
+        - Validación de entrada de datos
+        - Autorización y permisos
+        - Manejo de errores y excepciones
+        - Respuestas JSON consistentes
+        - Seguridad contra SQL injection y XSS
+    
+    - path: "database/migrations/**"
+      instructions: |
+        Verificar que:
+        - Incluya método down() para rollback
+        - Los nombres de columnas sigan convenciones Laravel
+        - Se definan índices apropiados
+        - Las foreign keys estén correctamente configuradas
+    
+    - path: "routes/**"
+      instructions: |
+        Revisar:
+        - Middleware de autenticación y autorización
+        - Nombres de rutas consistentes
+        - Agrupación apropiada de rutas
+        - Rate limiting si es necesario
+    
+    - path: "app/Models/**"
+      instructions: |
+        Verificar:
+        - Relaciones de Eloquent correctamente definidas
+        - $fillable o $guarded configurado
+        - Casting de atributos
+        - Accessors y mutators si son necesarios
 
 # Configuración de chat
 chat:
-  # Permitir interacción con CodeRabbit en comentarios
-  enabled: true
-  
-  # Comandos personalizados
   auto_reply: true
-
-# Verificaciones de seguridad
-security:
-  # Análisis de dependencias
-  dependency_scan: true
-  
-  # Verificar secretos expuestos
-  secret_scanning: true
-  
-  # Verificar vulnerabilidades conocidas
-  vulnerability_check: true
-
-# Configuración de rendimiento
-performance:
-  # Detectar consultas N+1
-  detect_n_plus_one: true
-  
-  # Verificar uso eficiente de caché
-  cache_usage: true
-  
-  # Análisis de complejidad de código
-  complexity_analysis: true
-
-# Tests y cobertura
-testing:
-  # Recordar agregar tests para nuevas funcionalidades
-  require_tests: true
-  
-  # Verificar que los tests pasen
-  check_test_coverage: true
-
-# Etiquetas automáticas
-labels:
-  # Agregar etiquetas según el tipo de cambio
-  auto_label: true
-  
-  # Configuración de etiquetas
-  configuration:
-    security: "🔒 security"
-    bug: "🐛 bug"
-    enhancement: "✨ enhancement"
-    refactor: "♻️ refactor"
-    documentation: "📝 docs"
-    performance: "⚡ performance"
-
-# Configuración de resumen
-summary:
-  # Generar resumen automático del PR
-  enabled: true
-  
-  # Incluir en el resumen
-  include:
-    - changes_overview
-    - files_changed
-    - potential_issues
-    - suggestions
-
-# Validaciones específicas del proyecto
-project_rules:
-  # Rutas críticas que requieren revisión extra
-  critical_paths:
-    - "app/Http/Controllers/Api/AuthController.php"
-    - "app/Http/Middleware/**"
-    - "config/**"
-    - "database/migrations/**"
-  
-  # Verificar que las migraciones incluyan rollback
-  migrations:
-    require_down_method: true
-  
-  # Verificar validación en controladores
-  controllers:
-    require_validation: true
-    require_authorization: true
-
-# Notificaciones
-notifications:
-  # Notificar cuando la revisión esté completa
-  on_review_complete: true
-  
-  # Notificar sobre problemas críticos
-  on_critical_issues: true
-
-# Configuración de análisis
-analysis:
-  # Profundidad del análisis
-  depth: standard # Opciones: quick, standard, thorough
-  
-  # Analizar cambios en contexto
-  contextual_analysis: true
-  
-  # Comparar con patrones del proyecto
-  pattern_matching: true
-
-# Integraciones
-integrations:
-  # Integración con GitHub Actions
-  github_actions: true
-  
-  # Verificar que CI/CD pase
-  require_ci_pass: false
