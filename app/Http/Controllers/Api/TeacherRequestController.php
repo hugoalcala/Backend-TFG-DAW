@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\TeacherRequestService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class TeacherRequestController extends Controller
 {
@@ -45,9 +46,25 @@ class TeacherRequestController extends Controller
                 ]
             ], 201);
         } catch (\Exception $e) {
+            // Registrar el error completo en los logs
+            Log::error('Error creating teacher request', [
+                'user_id' => $request->user()->id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Solo devolver mensajes específicos para errores de negocio conocidos
+            $code = $e->getCode();
+            if ($code === 400) {
+                return response()->json([
+                    'message' => $e->getMessage()
+                ], 400);
+            }
+
+            // Para cualquier otro error, devolver mensaje genérico
             return response()->json([
-                'message' => $e->getMessage()
-            ], $e->getCode() ?: 400);
+                'message' => 'Error al procesar la solicitud. Por favor, intenta nuevamente.'
+            ], 500);
         }
     }
 
@@ -78,9 +95,25 @@ class TeacherRequestController extends Controller
                 'message' => 'Solicitud cancelada exitosamente'
             ]);
         } catch (\Exception $e) {
+            // Registrar el error completo en los logs
+            Log::error('Error cancelling teacher request', [
+                'user_id' => $request->user()->id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Solo devolver mensajes específicos para errores de negocio conocidos
+            $code = $e->getCode();
+            if ($code === 404) {
+                return response()->json([
+                    'message' => $e->getMessage()
+                ], 404);
+            }
+
+            // Para cualquier otro error, devolver mensaje genérico
             return response()->json([
-                'message' => $e->getMessage()
-            ], $e->getCode() ?: 400);
+                'message' => 'Error al cancelar la solicitud. Por favor, intenta nuevamente.'
+            ], 500);
         }
     }
 }

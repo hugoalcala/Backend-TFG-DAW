@@ -46,13 +46,22 @@ class AdminService
      */
     public function approveTeacherRequest(int $requestId, int $reviewerId): TeacherRequest
     {
-        $teacherRequest = TeacherRequest::findOrFail($requestId);
-        
-        if ($teacherRequest->status !== 'pending') {
-            throw new \Exception('Esta solicitud ya fue procesada', 400);
-        }
+        return DB::transaction(function () use ($requestId, $reviewerId) {
+            // Obtener y bloquear el registro para evitar race conditions
+            $teacherRequest = TeacherRequest::with('user')
+                ->where('id', $requestId)
+                ->lockForUpdate()
+                ->first();
 
-        DB::transaction(function () use ($teacherRequest, $reviewerId) {
+            if (!$teacherRequest) {
+                throw new \Exception('Solicitud no encontrada', 404);
+            }
+
+            // Re-verificar el estado dentro de la transacción después del bloqueo
+            if ($teacherRequest->status !== 'pending') {
+                throw new \Exception('Esta solicitud ya fue procesada', 400);
+            }
+
             // Actualizar usuario a profesor
             $teacherRequest->user->update([
                 'role' => 'teacher',
@@ -68,9 +77,10 @@ class AdminService
                 'reviewed_by' => $reviewerId,
                 'reviewed_at' => now()
             ]);
-        });
 
-        return $teacherRequest->fresh('user');
+            // Devolver el registro actualizado con la relación user cargada
+            return $teacherRequest->fresh('user');
+        });
     }
 
     /**
@@ -84,22 +94,36 @@ class AdminService
      */
     public function rejectTeacherRequest(int $requestId, int $reviewerId, ?string $adminNotes = null): TeacherRequest
     {
-        $teacherRequest = TeacherRequest::findOrFail($requestId);
-        
-        if ($teacherRequest->status !== 'pending') {
-            throw new \Exception('Esta solicitud ya fue procesada', 400);
-        }
+        return DB::transaction(function () use ($requestId, $reviewerId, $adminNotes) {
+            // Obtener y bloquear el registro para evitar race conditions
+            $teacherRequest = TeacherRequest::with('user')
+                ->where('id', $requestId)
+                ->lockForUpdate()
+                ->first();
 
-        $teacherRequest->update([
-            'status' => 'rejected',
-            'admin_notes' => $adminNotes,
-            'reviewed_by' => $reviewerId,
-            'reviewed_at' => now()
-        ]);
+            if (!$teacherRequest) {
+                throw new \Exception('Solicitud no encontrada', 404);
+            }
 
-        $teacherRequest->user->update(['teacher_status' => 'rejected']);
+            // Re-verificar el estado dentro de la transacción después del bloqueo
+            if ($teacherRequest->status !== 'pending') {
+                throw new \Exception('Esta solicitud ya fue procesada', 400);
+            }
 
-        return $teacherRequest;
+            // Actualizar solicitud
+            $teacherRequest->update([
+                'status' => 'rejected',
+                'admin_notes' => $adminNotes,
+                'reviewed_by' => $reviewerId,
+                'reviewed_at' => now()
+            ]);
+
+            // Actualizar usuario
+            $teacherRequest->user->update(['teacher_status' => 'rejected']);
+
+            // Devolver el registro actualizado con la relación user cargada
+            return $teacherRequest->fresh('user');
+        });
     }
 
     /**
@@ -125,13 +149,25 @@ class AdminService
             });
         }
 
-        // Ordenar
+        // Validar y sanitizar sortBy - Lista blanca de columnas permitidas
+        $allowedSortColumns = ['id', 'name', 'email', 'role', 'created_at', 'updated_at'];
         $sortBy = $filters['sortBy'] ?? 'created_at';
-        $sortOrder = $filters['sortOrder'] ?? 'desc';
+        if (!in_array($sortBy, $allowedSortColumns, true)) {
+            $sortBy = 'created_at';
+        }
+
+        // Validar y normalizar sortOrder - Solo 'asc' o 'desc'
+        $sortOrder = strtolower($filters['sortOrder'] ?? 'desc');
+        if (!in_array($sortOrder, ['asc', 'desc'], true)) {
+            $sortOrder = 'desc';
+        }
+
         $query->orderBy($sortBy, $sortOrder);
 
-        // Paginar
-        $perPage = $filters['perPage'] ?? 10;
+        // Validar y limitar perPage - Rango de 1 a 100
+        $perPage = isset($filters['perPage']) ? (int)$filters['perPage'] : 10;
+        $perPage = max(1, min(100, $perPage));
+
         return $query->paginate($perPage);
     }
 

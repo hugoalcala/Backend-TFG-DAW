@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\AdminService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
@@ -57,9 +58,26 @@ class AdminController extends Controller
                 'data' => $teacherRequest
             ]);
         } catch (\Exception $e) {
+            // Registrar el error completo en los logs
+            Log::error('Error approving teacher request', [
+                'request_id' => $id,
+                'admin_id' => $request->user()->id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Solo devolver mensajes específicos para errores de negocio conocidos
+            $code = $e->getCode();
+            if ($code === 400) {
+                return response()->json([
+                    'message' => $e->getMessage()
+                ], 400);
+            }
+
+            // Para cualquier otro error, devolver mensaje genérico
             return response()->json([
-                'message' => $e->getMessage()
-            ], $e->getCode() ?: 400);
+                'message' => 'Error al aprobar la solicitud. Por favor, intenta nuevamente.'
+            ], 500);
         }
     }
 
@@ -87,9 +105,26 @@ class AdminController extends Controller
                 'message' => 'Solicitud rechazada'
             ]);
         } catch (\Exception $e) {
+            // Registrar el error completo en los logs
+            Log::error('Error rejecting teacher request', [
+                'request_id' => $id,
+                'admin_id' => $request->user()->id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Solo devolver mensajes específicos para errores de negocio conocidos
+            $code = $e->getCode();
+            if ($code === 400) {
+                return response()->json([
+                    'message' => $e->getMessage()
+                ], 400);
+            }
+
+            // Para cualquier otro error, devolver mensaje genérico
             return response()->json([
-                'message' => $e->getMessage()
-            ], $e->getCode() ?: 400);
+                'message' => 'Error al rechazar la solicitud. Por favor, intenta nuevamente.'
+            ], 500);
         }
     }
 
@@ -136,9 +171,18 @@ class AdminController extends Controller
                 'user' => $user,
             ]);
         } catch (\Exception $e) {
+            // Registrar el error completo en los logs
+            Log::error('Error updating user', [
+                'user_id' => $id,
+                'admin_id' => $request->user()->id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Devolver mensaje genérico para errores del sistema
             return response()->json([
-                'message' => $e->getMessage()
-            ], 404);
+                'message' => 'Error al actualizar el usuario. Por favor, intenta nuevamente.'
+            ], 500);
         }
     }
 
@@ -158,10 +202,26 @@ class AdminController extends Controller
                 'message' => 'User deleted successfully',
             ]);
         } catch (\Exception $e) {
-            $code = $e->getCode() === 403 ? 403 : 404;
+            // Registrar el error completo en los logs
+            Log::error('Error deleting user', [
+                'user_id' => $id,
+                'admin_id' => $request->user()->id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Solo devolver mensajes específicos para errores de negocio conocidos
+            $code = $e->getCode();
+            if ($code === 403) {
+                return response()->json([
+                    'message' => $e->getMessage()
+                ], 403);
+            }
+
+            // Para cualquier otro error, devolver mensaje genérico
             return response()->json([
-                'message' => $e->getMessage()
-            ], $code);
+                'message' => 'Error al eliminar el usuario. Por favor, intenta nuevamente.'
+            ], 500);
         }
     }
 

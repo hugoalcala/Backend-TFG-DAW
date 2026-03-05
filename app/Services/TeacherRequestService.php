@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\TeacherRequest;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class TeacherRequestService
@@ -33,21 +34,25 @@ class TeacherRequestService
             throw new \Exception('Ya tienes una solicitud pendiente de revisión', 400);
         }
 
-        // Guardar certificado
-        $certificatePath = $certificate->store('certificates', 'public');
+        // Guardar certificado en disco privado
+        $certificatePath = $certificate->store('certificates', 'local');
 
-        // Crear solicitud
-        $teacherRequest = TeacherRequest::create([
-            'user_id' => $user->id,
-            'subject' => $data['subject'],
-            'bio' => $data['bio'],
-            'price_per_hour' => $data['price_per_hour'] ?? null,
-            'certificate_path' => $certificatePath,
-            'status' => 'pending'
-        ]);
+        // Crear solicitud y actualizar usuario en transacción
+        $teacherRequest = DB::transaction(function () use ($user, $data, $certificatePath) {
+            $request = TeacherRequest::create([
+                'user_id' => $user->id,
+                'subject' => $data['subject'],
+                'bio' => $data['bio'],
+                'price_per_hour' => $data['price_per_hour'] ?? null,
+                'certificate_path' => $certificatePath,
+                'status' => 'pending'
+            ]);
 
-        // Actualizar estado del usuario
-        $user->update(['teacher_status' => 'pending']);
+            // Actualizar estado del usuario
+            $user->update(['teacher_status' => 'pending']);
+
+            return $request;
+        });
 
         return $teacherRequest;
     }
@@ -72,9 +77,10 @@ class TeacherRequestService
             ];
         }
 
+        // Alinear lógica con createRequest(): puede aplicar si no es profesor y no tiene solicitud pendiente
         return [
             'hasRequest' => true,
-            'canApply' => false,
+            'canApply' => $user->role !== 'teacher' && $teacherRequest->status !== 'pending',
             'request' => $teacherRequest
         ];
     }
@@ -96,13 +102,16 @@ class TeacherRequestService
             throw new \Exception('No tienes ninguna solicitud pendiente', 404);
         }
 
-        // Eliminar certificado
+        // Eliminar certificado del disco privado
         if ($teacherRequest->certificate_path) {
-            Storage::disk('public')->delete($teacherRequest->certificate_path);
+            Storage::disk('local')->delete($teacherRequest->certificate_path);
         }
 
-        $teacherRequest->delete();
-        $user->update(['teacher_status' => null]);
+        // Eliminar solicitud y actualizar usuario en transacción
+        DB::transaction(function () use ($teacherRequest, $user) {
+            $teacherRequest->delete();
+            $user->update(['teacher_status' => null]);
+        });
 
         return true;
     }
