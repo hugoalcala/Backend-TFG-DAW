@@ -31,6 +31,16 @@ class User extends Authenticatable
         'subject',
         'bio',
         'price_per_hour',
+        'avatar_path',
+    ];
+
+    /**
+     * Atributos calculados que se incluirán en JSON.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'avatar_url',
     ];
 
     /**
@@ -96,5 +106,17 @@ class User extends Authenticatable
     public function isUser(): bool
     {
         return $this->role === 'user';
+    }
+
+    /**
+     * URL pública del avatar del usuario.
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar_path) {
+            return null;
+        }
+
+        return asset('storage/'.$this->avatar_path);
     }
 }

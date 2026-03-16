@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -23,17 +25,24 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        Log::info('Register iniciado', ['request_data' => $request->all()]);
-        
+        $payload = $this->normalizeRegistrationPayload($request);
+
+        Log::info('Register iniciado', [
+            'request_data' => [
+                'name' => $payload['name'] ?? null,
+                'email' => $payload['email'] ?? null,
+            ],
+        ]);
+
         // Validar datos de entrada
         // - name: requerido, string, máximo 255 caracteres
         // - email: requerido, email válido, único en la tabla users
         // - password: requerido, mínimo 8 caracteres, debe ser confirmado
-        $validated = $request->validate([
+        $validated = validator($payload, [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-        ]);
+        ])->validate();
 
         // Crear nuevo usuario en la base de datos con contraseña encriptada
         $user = User::create([
@@ -49,6 +58,29 @@ class AuthController extends Controller
             'token' => $user->createToken('auth_token')->plainTextToken,
             'role' => $user->role,
         ], 201); // Status 201: Created
+    }
+
+    /**
+     * Normaliza variantes del payload de registro enviadas por el frontend.
+     */
+    private function normalizeRegistrationPayload(Request $request): array
+    {
+        $name = trim((string) $request->input('name', ''));
+
+        if ($name === '') {
+            $firstName = trim((string) ($request->input('first_name') ?? $request->input('nombre') ?? ''));
+            $lastName = trim((string) ($request->input('last_name') ?? $request->input('apellido') ?? ''));
+            $name = trim($firstName.' '.$lastName);
+        }
+
+        return [
+            'name' => $name,
+            'email' => $request->input('email'),
+            'password' => $request->input('password'),
+            'password_confirmation' => $request->input('password_confirmation')
+                ?? $request->input('confirm_password')
+                ?? $request->input('confirmPassword'),
+        ];
     }
 
     /**
@@ -111,6 +143,93 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Logged out successfully',
         ]);
+    }
+
+    /**
+     * Devuelve el perfil del usuario autenticado.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function me(Request $request)
+    {
+        return response()->json($request->user()->fresh());
+    }
+
+    /**
+     * Actualiza el perfil del usuario autenticado, incluyendo avatar.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => [
+                'sometimes',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'avatar' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'remove_avatar' => 'sometimes|boolean',
+        ]);
+
+        if ($request->boolean('remove_avatar') && $user->avatar_path) {
+            Storage::disk('public')->delete($user->avatar_path);
+            $user->avatar_path = null;
+        }
+
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar_path) {
+                Storage::disk('public')->delete($user->avatar_path);
+            }
+
+            $user->avatar_path = $request->file('avatar')->store('avatars', 'public');
+        }
+
+        if (array_key_exists('name', $validated)) {
+            $user->name = $validated['name'];
+        }
+
+        if (array_key_exists('email', $validated)) {
+            $user->email = $validated['email'];
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Perfil actualizado correctamente',
+            'user' => $user->fresh(),
+        ]);
+    }
+
+    /**
+     * Actualiza únicamente el avatar del usuario autenticado.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateAvatar(Request $request)
+    {
+        return $this->updateProfile($request);
+    }
+
+    /**
+     * Elimina el avatar del usuario autenticado.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteAvatar(Request $request)
+    {
+        $request->merge(['remove_avatar' => true]);
+
+        return $this->updateProfile($request);
     }
 
     /**

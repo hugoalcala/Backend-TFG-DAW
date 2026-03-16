@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminController;
@@ -22,9 +21,12 @@ Route::post('/auth/google/callback', [AuthController::class, 'googleCallback']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    Route::get('/me', function (Request $request) {
-        return $request->user();
-    });
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/me', [AuthController::class, 'updateProfile']);
+    Route::get('/profile', [AuthController::class, 'me']);
+    Route::match(['post', 'put', 'patch'], '/profile', [AuthController::class, 'updateProfile']);
+    Route::match(['post', 'put', 'patch'], '/profile/avatar', [AuthController::class, 'updateAvatar']);
+    Route::delete('/profile/avatar', [AuthController::class, 'deleteAvatar']);
 
     // Rutas de solicitud de profesor
     Route::post('/become-teacher', [TeacherRequestController::class, 'store']);
