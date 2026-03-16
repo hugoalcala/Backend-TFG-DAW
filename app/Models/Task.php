@@ -15,12 +15,16 @@ class Task extends Model
         'description',
         'category',
         'status',
+        'due_date',
+        'started_at',
         'completed_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'due_date'     => 'date',
+            'started_at'   => 'datetime',
             'completed_at' => 'datetime',
         ];
     }

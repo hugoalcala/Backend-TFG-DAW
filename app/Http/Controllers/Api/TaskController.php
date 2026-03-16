@@ -40,6 +40,8 @@ class TaskController extends Controller
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'category'    => 'sometimes|in:general,trabajo,personal,estudio,salud',
+            'due_date'    => 'nullable|date',
+            'started_at'  => 'nullable|date',
         ]);
 
         $task = Task::create([
@@ -48,6 +50,8 @@ class TaskController extends Controller
             'description' => $validated['description'] ?? null,
             'category'    => $validated['category'] ?? 'general',
             'status'      => 'pending',
+            'due_date'    => $validated['due_date'] ?? null,
+            'started_at'  => $validated['started_at'] ?? null,
         ]);
 
         return response()->json($task, 201);
@@ -73,6 +77,8 @@ class TaskController extends Controller
             'description' => 'nullable|string|max:1000',
             'category'    => 'sometimes|in:general,trabajo,personal,estudio,salud',
             'status'      => 'sometimes|in:pending,in_progress,completed',
+            'due_date'    => 'nullable|date',
+            'started_at'  => 'nullable|date',
         ]);
 
         if (isset($validated['status']) && $validated['status'] === 'completed' && $task->status !== 'completed') {
