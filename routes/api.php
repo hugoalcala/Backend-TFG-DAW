@@ -3,11 +3,13 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\TeacherRequestController;
 
 // Rutas de autenticación pública
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/teachers', [TeacherController::class, 'index']);
 
 // Rutas de recuperación de contraseña
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
