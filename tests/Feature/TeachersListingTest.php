@@ -14,6 +14,7 @@ class TeachersListingTest extends TestCase
     {
         $approvedTeacher = User::factory()->create([
             'name' => 'Ana Profe',
+            'email' => 'ana@example.com',
             'role' => 'teacher',
             'teacher_status' => 'approved',
             'subject' => 'Matematicas',
@@ -37,13 +38,40 @@ class TeachersListingTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonCount(1, 'teachers')
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('teachers.0.id', $approvedTeacher->id)
-            ->assertJsonPath('teachers.0.name', 'Ana Profe')
-            ->assertJsonPath('teachers.0.subject', 'Matematicas')
-            ->assertJsonPath('teachers.0.teacher_status', 'approved')
-            ->assertJsonPath('teachers.0.role', 'teacher');
+            ->assertJsonPath('data.0.id', $approvedTeacher->id)
+            ->assertJsonPath('data.0.name', 'Ana Profe')
+            ->assertJsonPath('data.0.subject', 'Matematicas')
+            ->assertJsonPath('data.0.teacher_status', 'approved')
+            ->assertJsonPath('data.0.role', 'teacher')
+            ->assertJsonMissingPath('data.0.email')
+            ->assertJsonStructure([
+                'current_page',
+                'data' => [[
+                    'id',
+                    'name',
+                    'subject',
+                    'bio',
+                    'price_per_hour',
+                    'avatar_path',
+                    'avatar_url',
+                    'role',
+                    'teacher_status',
+                    'created_at',
+                    'updated_at',
+                ]],
+                'first_page_url',
+                'from',
+                'last_page',
+                'last_page_url',
+                'links',
+                'next_page_url',
+                'path',
+                'per_page',
+                'prev_page_url',
+                'to',
+                'total',
+            ]);
     }
 
     public function test_it_returns_empty_list_when_there_are_no_approved_teachers(): void
@@ -57,7 +85,8 @@ class TeachersListingTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonPath('teachers', [])
-            ->assertJsonPath('data', []);
+            ->assertJsonPath('data', [])
+            ->assertJsonPath('total', 0)
+            ->assertJsonPath('per_page', 12);
     }
 }
