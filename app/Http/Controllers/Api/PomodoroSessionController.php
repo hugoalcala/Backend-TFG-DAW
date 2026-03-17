@@ -45,7 +45,7 @@ class PomodoroSessionController extends Controller
         if (!empty($validated['task_id'])) {
             $task = Task::find($validated['task_id']);
             if (!$task || $task->user_id !== $request->user()->id) {
-                return response()->json(['error' => 'Tarea no válida'], 422);
+                return response()->json(['error' => 'Invalid task'], 422);
             }
         }
 

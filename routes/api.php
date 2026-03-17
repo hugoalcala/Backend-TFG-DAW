@@ -49,11 +49,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
 
     // Productividad — sesiones Pomodoro
-    Route::get('/pomodoro-sessions', [PomodoroSessionController::class, 'index'])->name('pomodoro.index');
-    Route::post('/pomodoro-sessions', [PomodoroSessionController::class, 'store'])->name('pomodoro.store');
+    Route::get('/pomodoro-sessions', [PomodoroSessionController::class, 'index'])
+        ->middleware('throttle:60,1')
+        ->name('pomodoro.index');
+    Route::post('/pomodoro-sessions', [PomodoroSessionController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('pomodoro.store');
 
     // Productividad — métricas
-    Route::get('/productivity-metrics', [ProductivityMetricsController::class, 'index'])->name('productivity.metrics');
+    Route::get('/productivity-metrics', [ProductivityMetricsController::class, 'index'])
+        ->middleware('throttle:60,1')
+        ->name('productivity.metrics');
 });
 
 // Rutas de administración (requieren autenticación y rol de admin)

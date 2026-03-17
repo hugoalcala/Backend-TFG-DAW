@@ -13,7 +13,12 @@ class ProductivityMetricsController extends Controller
 {
     public function index(Request $request)
     {
-        $period = $request->input('period', 'week');
+        // Validate period parameter
+        $validated = $request->validate([
+            'period' => 'sometimes|in:today,week,month',
+        ]);
+
+        $period = $validated['period'] ?? 'week';
 
         $from = match ($period) {
             'today' => now()->startOfDay(),
@@ -47,19 +52,19 @@ class ProductivityMetricsController extends Controller
             };
             $daily = [];
             for ($i = $days - 1; $i >= 0; $i--) {
-                $day  = now()->subDays($i)->toDateString();
-                $from = now()->subDays($i)->startOfDay();
-                $to   = now()->subDays($i)->endOfDay();
+                $dayStart = now()->subDays($i)->startOfDay();
+                $dayEnd   = now()->subDays($i)->endOfDay();
+                $day      = now()->subDays($i)->toDateString();
 
                 $daily[] = [
                     'date' => $day,
                     'completed_tasks' => Task::where('user_id', $userId)
                         ->where('status', 'completed')
-                        ->whereBetween('completed_at', [$from, $to])
+                        ->whereBetween('completed_at', [$dayStart, $dayEnd])
                         ->count(),
                     'focus_sessions' => PomodoroSession::where('user_id', $userId)
                         ->where('type', 'focus')
-                        ->whereBetween('started_at', [$from, $to])
+                        ->whereBetween('started_at', [$dayStart, $dayEnd])
                         ->count(),
                 ];
             }

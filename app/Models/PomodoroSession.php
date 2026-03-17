@@ -22,6 +22,7 @@ class PomodoroSession extends Model
     protected function casts(): array
     {
         return [
+            'duration_minutes' => 'integer',
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
             'completed' => 'boolean',
