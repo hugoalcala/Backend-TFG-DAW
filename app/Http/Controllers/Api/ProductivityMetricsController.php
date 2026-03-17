@@ -33,7 +33,6 @@ class ProductivityMetricsController extends Controller
 
             $sessions = PomodoroSession::where('user_id', $userId)
                 ->where('type', 'focus')
-                ->where('completed', true)
                 ->where('started_at', '>=', $from)
                 ->get(['started_at', 'duration_minutes']);
 
@@ -60,7 +59,6 @@ class ProductivityMetricsController extends Controller
                         ->count(),
                     'focus_sessions' => PomodoroSession::where('user_id', $userId)
                         ->where('type', 'focus')
-                        ->where('completed', true)
                         ->whereBetween('started_at', [$from, $to])
                         ->count(),
                 ];
