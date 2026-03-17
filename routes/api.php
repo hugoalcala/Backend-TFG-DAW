@@ -5,6 +5,9 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\TeacherRequestController;
+use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\PomodoroSessionController;
+use App\Http\Controllers\Api\ProductivityMetricsController;
 
 // Rutas de autenticación pública
 Route::post('/register', [AuthController::class, 'register']);
@@ -36,6 +39,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/become-teacher', [TeacherRequestController::class, 'store']);
     Route::get('/teacher-request/status', [TeacherRequestController::class, 'status']);
     Route::delete('/teacher-request/cancel', [TeacherRequestController::class, 'cancel']);
+
+    // Productividad — tareas
+    Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
+    Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::get('/tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
+    Route::put('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+    Route::patch('/tasks/{task}', [TaskController::class, 'update']);
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+
+    // Productividad — sesiones Pomodoro
+    Route::get('/pomodoro-sessions', [PomodoroSessionController::class, 'index'])
+        ->middleware('throttle:60,1')
+        ->name('pomodoro.index');
+    Route::post('/pomodoro-sessions', [PomodoroSessionController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('pomodoro.store');
+
+    // Productividad — métricas
+    Route::get('/productivity-metrics', [ProductivityMetricsController::class, 'index'])
+        ->middleware('throttle:60,1')
+        ->name('productivity.metrics');
 });
 
 // Rutas de administración (requieren autenticación y rol de admin)

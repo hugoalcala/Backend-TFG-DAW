@@ -13,8 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Registrar middleware CORS global (debe ser primero)
+        $middleware->prepend(\App\Http\Middleware\CorsMiddleware::class);
+        
         // Configurar hosts confiables
         $middleware->trustHosts(at: ['localhost', 'localhost:5173', '127.0.0.1']);
+        
+        // Excluir rutas de API de la validación CSRF
+        $middleware->validateCsrfTokens(except: ['api/*']);
         
         // Registrar middleware personalizado
         $middleware->alias([
