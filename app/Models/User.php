@@ -119,4 +119,12 @@ class User extends Authenticatable
 
         return asset('storage/'.$this->avatar_path);
     }
+
+    /**
+     * Relación muchos a muchos con intereses
+     */
+    public function interests()
+    {
+        return $this->belongsToMany(Interest::class, 'interest_user');
+    }
 }
