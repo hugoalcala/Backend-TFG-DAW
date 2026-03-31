@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\TeacherRequestController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\PomodoroSessionController;
 use App\Http\Controllers\Api\ProductivityMetricsController;
+use App\Http\Controllers\Api\ProfileController;
 
 // Rutas de autenticación pública
 Route::post('/register', [AuthController::class, 'register']);
@@ -19,6 +20,9 @@ Route::get('/teachers', [TeacherController::class, 'index'])
 // Rutas de recuperación de contraseña
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+// Rutas públicas de intereses
+Route::get('/interests', [ProfileController::class, 'listAllInterests']);
 
 // Rutas de autenticación con Google
 Route::get('/auth/google', [AuthController::class, 'googleRedirect']);
@@ -34,6 +38,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::match(['post', 'put', 'patch'], '/profile', [AuthController::class, 'updateProfile']);
     Route::match(['post', 'put', 'patch'], '/profile/avatar', [AuthController::class, 'updateAvatar']);
     Route::delete('/profile/avatar', [AuthController::class, 'deleteAvatar']);
+
+    // Rutas de intereses
+    Route::get('/profile/interests', [ProfileController::class, 'getInterests']);
+    Route::match(['post', 'put', 'patch'], '/profile/interests', [ProfileController::class, 'updateInterests']);
 
     // Rutas de solicitud de profesor
     Route::post('/become-teacher', [TeacherRequestController::class, 'store']);

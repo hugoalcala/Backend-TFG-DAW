@@ -153,7 +153,9 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        return response()->json($request->user()->fresh());
+        $user = $request->user()->fresh()->load('interests');
+        
+        return response()->json($user);
     }
 
     /**
@@ -204,7 +206,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Perfil actualizado correctamente',
-            'user' => $user->fresh(),
+            'user' => $user->fresh()->load('interests'),
         ]);
     }
 
