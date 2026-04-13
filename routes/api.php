@@ -19,7 +19,9 @@ Route::get('/teachers', [TeacherController::class, 'index'])
     ->name('teachers.index');
 
 // Rutas públicas de reseñas de profesores
-Route::get('/teachers/{teacherId}/ratings', [RatingController::class, 'getTeacherRatings']);
+Route::get('/teachers/{teacherId}/ratings', [RatingController::class, 'getTeacherRatings'])
+    ->middleware('throttle:60,1')
+    ->name('ratings.get');
 
 // Rutas de recuperación de contraseña
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
@@ -74,9 +76,15 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('productivity.metrics');
 
     // Rutas de reseñas (protegidas)
-    Route::post('/teachers/{teacherId}/ratings', [RatingController::class, 'store']);
-    Route::put('/teachers/{teacherId}/ratings/{ratingId}', [RatingController::class, 'update']);
-    Route::delete('/teachers/{teacherId}/ratings/{ratingId}', [RatingController::class, 'destroy']);
+    Route::post('/teachers/{teacherId}/ratings', [RatingController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('ratings.store');
+    Route::put('/teachers/{teacherId}/ratings/{ratingId}', [RatingController::class, 'update'])
+        ->middleware('throttle:30,1')
+        ->name('ratings.update');
+    Route::delete('/teachers/{teacherId}/ratings/{ratingId}', [RatingController::class, 'destroy'])
+        ->middleware('throttle:30,1')
+        ->name('ratings.destroy');
 });
 
 // Rutas de administración (requieren autenticación y rol de admin)
