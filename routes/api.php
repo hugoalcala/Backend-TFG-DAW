@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\PomodoroSessionController;
 use App\Http\Controllers\Api\ProductivityMetricsController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\RatingController;
 
 // Rutas de autenticación pública
 Route::post('/register', [AuthController::class, 'register']);
@@ -16,6 +17,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/teachers', [TeacherController::class, 'index'])
     ->middleware('throttle:60,1')
     ->name('teachers.index');
+
+// Rutas públicas de reseñas de profesores
+Route::get('/teachers/{teacherId}/ratings', [RatingController::class, 'getTeacherRatings']);
 
 // Rutas de recuperación de contraseña
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
@@ -68,6 +72,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/productivity-metrics', [ProductivityMetricsController::class, 'index'])
         ->middleware('throttle:60,1')
         ->name('productivity.metrics');
+
+    // Rutas de reseñas (protegidas)
+    Route::post('/teachers/{teacherId}/ratings', [RatingController::class, 'store']);
+    Route::put('/teachers/{teacherId}/ratings/{ratingId}', [RatingController::class, 'update']);
+    Route::delete('/teachers/{teacherId}/ratings/{ratingId}', [RatingController::class, 'destroy']);
 });
 
 // Rutas de administración (requieren autenticación y rol de admin)

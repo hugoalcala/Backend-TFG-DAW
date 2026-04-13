@@ -85,6 +85,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Relación con las reseñas que el usuario recibe como profesor
+     */
+    public function ratings()
+    {
+        return $this->hasMany(Rating::class, 'teacher_id');
+    }
+
+    /**
+     * Relación con las reseñas que el usuario ha dado como estudiante
+     */
+    public function givenRatings()
+    {
+        return $this->hasMany(Rating::class, 'student_id');
+    }
+
+    /**
      * Verifica si el usuario es administrador
      */
     public function isAdmin(): bool
