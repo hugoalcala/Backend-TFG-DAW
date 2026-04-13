@@ -12,6 +12,20 @@ use Illuminate\Validation\ValidationException;
 class RatingController extends Controller
 {
     /**
+     * Calcular estadísticas de reseñas de un profesor
+     */
+    private function calculateTeacherStats(int $teacherId): array
+    {
+        $averageRating = Rating::where('teacher_id', $teacherId)->avg('rating');
+        $totalCount = Rating::where('teacher_id', $teacherId)->count();
+        
+        return [
+            'average' => round($averageRating ?? 0, 2),
+            'count' => $totalCount,
+        ];
+    }
+
+    /**
      * Crear una nueva reseña/calificación para un profesor
      * 
      * POST /api/teachers/{teacherId}/ratings
@@ -20,6 +34,14 @@ class RatingController extends Controller
     {
         try {
             $user = $request->user();
+            
+            // Validar que el usuario es estudiante
+            if ($user->role !== 'user') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo los estudiantes pueden crear reseñas',
+                ], 403);
+            }
             
             // Validar que el profesor existe
             $teacher = User::findOrFail($teacherId);
@@ -59,15 +81,14 @@ class RatingController extends Controller
             );
             
             // Calcular el nuevo promedio del profesor
-            $averageRating = Rating::where('teacher_id', $teacherId)->avg('rating');
-            $totalCount = Rating::where('teacher_id', $teacherId)->count();
+            $stats = $this->calculateTeacherStats($teacherId);
             
             return response()->json([
                 'success' => true,
                 'data' => [
                     'rating' => $rating,
-                    'average' => round($averageRating, 2),
-                    'total_count' => $totalCount,
+                    'average' => $stats['average'],
+                    'total_count' => $stats['count'],
                 ],
                 'message' => 'Reseña guardada exitosamente',
             ], 201);
@@ -84,12 +105,11 @@ class RatingController extends Controller
                 'message' => 'Profesor no encontrado',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Error al crear reseña: ' . $e->getMessage());
+            Log::error('Error al crear reseña: ' . $e->getMessage() . '\n' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
                 'message' => 'Error al guardar la reseña',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -99,7 +119,7 @@ class RatingController extends Controller
      * 
      * GET /api/teachers/{teacherId}/ratings
      */
-    public function getTeacherRatings(Request $request, $teacherId)
+    public function getTeacherRatings($teacherId)
     {
         try {
             // Validar que el profesor existe
@@ -131,15 +151,14 @@ class RatingController extends Controller
                 });
             
             // Calcular estadísticas
-            $averageRating = Rating::where('teacher_id', $teacherId)->avg('rating');
-            $totalCount = Rating::where('teacher_id', $teacherId)->count();
+            $stats = $this->calculateTeacherStats($teacherId);
             
             return response()->json([
                 'success' => true,
                 'data' => [
                     'ratings' => $ratings,
-                    'average' => round($averageRating, 2),
-                    'total_count' => $totalCount,
+                    'average' => $stats['average'],
+                    'total_count' => $stats['count'],
                 ],
             ], 200);
             
@@ -149,12 +168,11 @@ class RatingController extends Controller
                 'message' => 'Profesor no encontrado',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Error al obtener reseñas: ' . $e->getMessage());
+            Log::error('Error al obtener reseñas: ' . $e->getMessage() . '\n' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener las reseñas',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -201,15 +219,14 @@ class RatingController extends Controller
             ]);
             
             // Calcular el nuevo promedio del profesor
-            $averageRating = Rating::where('teacher_id', $teacherId)->avg('rating');
-            $totalCount = Rating::where('teacher_id', $teacherId)->count();
+            $stats = $this->calculateTeacherStats($teacherId);
             
             return response()->json([
                 'success' => true,
                 'data' => [
                     'rating' => $rating,
-                    'average' => round($averageRating, 2),
-                    'total_count' => $totalCount,
+                    'average' => $stats['average'],
+                    'total_count' => $stats['count'],
                 ],
                 'message' => 'Reseña actualizada exitosamente',
             ], 200);
@@ -226,12 +243,11 @@ class RatingController extends Controller
                 'message' => 'Reseña no encontrada',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Error al actualizar reseña: ' . $e->getMessage());
+            Log::error('Error al actualizar reseña: ' . $e->getMessage() . '\n' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar la reseña',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -269,15 +285,14 @@ class RatingController extends Controller
             $rating->delete();
             
             // Calcular el nuevo promedio del profesor
-            $averageRating = Rating::where('teacher_id', $teacherId)->avg('rating');
-            $totalCount = Rating::where('teacher_id', $teacherId)->count();
+            $stats = $this->calculateTeacherStats($teacherId);
             
             return response()->json([
                 'success' => true,
                 'message' => 'Reseña eliminada exitosamente',
                 'data' => [
-                    'average' => round($averageRating, 2),
-                    'total_count' => $totalCount,
+                    'average' => $stats['average'],
+                    'total_count' => $stats['count'],
                 ],
             ], 200);
             
@@ -287,12 +302,11 @@ class RatingController extends Controller
                 'message' => 'Reseña no encontrada',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Error al eliminar reseña: ' . $e->getMessage());
+            Log::error('Error al eliminar reseña: ' . $e->getMessage() . '\n' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar la reseña',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }

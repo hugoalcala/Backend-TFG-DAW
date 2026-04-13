@@ -23,6 +23,9 @@ return new class extends Migration
             $table->foreign('teacher_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('student_id')->references('id')->on('users')->onDelete('cascade');
             
+            // Constraint único para una reseña por estudiante/profesor
+            $table->unique(['teacher_id', 'student_id']);
+            
             // Índices para consultas rápidas
             $table->index('teacher_id');
             $table->index('student_id');
