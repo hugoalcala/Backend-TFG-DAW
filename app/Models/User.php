@@ -32,6 +32,9 @@ class User extends Authenticatable
         'bio',
         'price_per_hour',
         'avatar_path',
+        'penalties',
+        'last_penalty_reason',
+        'last_penalty_at',
     ];
 
     /**
@@ -98,6 +101,22 @@ class User extends Authenticatable
     public function givenRatings()
     {
         return $this->hasMany(Rating::class, 'student_id');
+    }
+
+    /**
+     * Relación con los reportes que el usuario ha creado
+     */
+    public function createdReports()
+    {
+        return $this->hasMany(RatingReport::class, 'reported_by_user_id');
+    }
+
+    /**
+     * Relación con los reportes que el usuario ha revisado como admin
+     */
+    public function reviewedReports()
+    {
+        return $this->hasMany(RatingReport::class, 'reviewed_by_user_id');
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\PomodoroSessionController;
 use App\Http\Controllers\Api\ProductivityMetricsController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
+use App\Http\Controllers\Api\ReportController;
 
 // Rutas de autenticación pública
 Route::post('/register', [AuthController::class, 'register']);
@@ -85,6 +86,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/teachers/{teacherId}/ratings/{ratingId}', [RatingController::class, 'destroy'])
         ->middleware('throttle:30,1')
         ->name('ratings.destroy');
+    
+    // Rutas de reportes de reseñas
+    Route::post('/teachers/{teacherId}/ratings/{ratingId}/report', [RatingController::class, 'reportRating'])
+        ->middleware('throttle:30,1')
+        ->name('ratings.report');
 });
 
 // Rutas de administración (requieren autenticación y rol de admin)
@@ -102,6 +108,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/users', [AdminController::class, 'getUsers']);
     Route::put('/users/{id}', [AdminController::class, 'updateUser']);
     Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
+    Route::post('/users/{userId}/message', [ReportController::class, 'sendMessage']);
+    
+    // Gestión de denuncias
+    Route::get('/reports', [ReportController::class, 'index']);
+    Route::get('/reports/{reportId}', [ReportController::class, 'show']);
+    Route::post('/reports/{reportId}/approve', [ReportController::class, 'approve']);
+    Route::post('/reports/{reportId}/reject', [ReportController::class, 'reject']);
     
     // Gestión de publicaciones
     Route::get('/posts', [AdminController::class, 'getPosts']);

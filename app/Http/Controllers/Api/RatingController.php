@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Rating;
+use App\Models\RatingReport;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -310,4 +311,92 @@ class RatingController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Reportar una reseña
+     * 
+     * POST /api/teachers/{teacherId}/ratings/{ratingId}/report
+     */
+    public function reportRating(Request $request, $teacherId, $ratingId)
+    {
+        try {
+            $user = $request->user();
+            
+            // Validar que la reseña existe
+            $rating = Rating::findOrFail($ratingId);
+            
+            // Validar que la reseña pertenece al profesor especificado
+            if ($rating->teacher_id != $teacherId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La reseña no pertenece a este profesor',
+                ], 400);
+            }
+            
+            // Validaciones de entrada - aceptar ambos formatos (frontend y backend)
+            $validated = $request->validate([
+                'reason' => 'required|string|in:offensive_content,spam,fake_review,inappropriate,other,inappropriate_content,harassment,misinformation',
+                'details' => 'nullable|string|max:500',
+            ]);
+
+            // Normalizar el valor de reason
+            $reasonMap = [
+                'inappropriate_content' => 'offensive_content',
+                'harassment' => 'offensive_content',
+                'misinformation' => 'fake_review',
+            ];
+            
+            $normalizedReason = $reasonMap[$validated['reason']] ?? $validated['reason'];
+            
+            // Verificar que no existe reporte duplicado del mismo usuario
+            $existingReport = RatingReport::where('rating_id', $ratingId)
+                ->where('reported_by_user_id', $user->id)
+                ->first();
+            
+            if ($existingReport) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya has reportado esta reseña anteriormente',
+                ], 409);
+            }
+            
+            // Crear el reporte con el reason normalizado
+            $report = RatingReport::create([
+                'rating_id' => $ratingId,
+                'teacher_id' => $teacherId,
+                'reported_by_user_id' => $user->id,
+                'reason' => $normalizedReason,
+                'details' => $validated['details'] ?? null,
+                'status' => 'pending',
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Reporte registrado exitosamente',
+                'data' => [
+                    'report_id' => $report->id,
+                ],
+            ], 201);
+            
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Reseña no encontrada',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Error al reportar reseña: ' . $e->getMessage() . '\n' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar el reporte',
+            ], 500);
+        }
+    }
 }
+

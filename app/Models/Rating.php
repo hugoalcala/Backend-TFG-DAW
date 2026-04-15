@@ -35,4 +35,12 @@ class Rating extends Model
     {
         return $this->belongsTo(User::class, 'student_id');
     }
+
+    /**
+     * Relación con los reportes de esta reseña
+     */
+    public function reports()
+    {
+        return $this->hasMany(RatingReport::class);
+    }
 }
