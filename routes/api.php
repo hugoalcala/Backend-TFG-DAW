@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ProductivityMetricsController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\PostController;
 
 // Rutas de autenticación pública
 Route::post('/register', [AuthController::class, 'register']);
@@ -91,6 +92,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/teachers/{teacherId}/ratings/{ratingId}/report', [RatingController::class, 'reportRating'])
         ->middleware('throttle:30,1')
         ->name('ratings.report');
+
+    // Rutas de posts/foro
+    Route::get('/posts', [PostController::class, 'index'])
+        ->middleware('throttle:60,1')
+        ->name('posts.index');
+    Route::post('/posts', [PostController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('posts.store');
+    Route::match(['put', 'post'], '/posts/{id}', [PostController::class, 'update'])
+        ->middleware('throttle:30,1')
+        ->name('posts.update');
+    Route::delete('/posts/{id}', [PostController::class, 'destroy'])
+        ->middleware('throttle:30,1')
+        ->name('posts.destroy');
 });
 
 // Rutas de administración (requieren autenticación y rol de admin)
