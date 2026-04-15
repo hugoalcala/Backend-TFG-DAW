@@ -115,6 +115,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/posts/{id}/unlike', [PostController::class, 'unlike'])
         ->middleware('throttle:60,1')
         ->name('posts.unlike');
+    
+    // Rutas de comentarios en posts
+    Route::get('/posts/{id}/comments', [PostController::class, 'getComments'])
+        ->middleware('throttle:60,1')
+        ->name('posts.comments.index');
+    Route::post('/posts/{id}/comments', [PostController::class, 'addComment'])
+        ->middleware('throttle:30,1')
+        ->name('posts.comments.store');
+    Route::put('/posts/{postId}/comments/{commentId}', [PostController::class, 'updateComment'])
+        ->middleware('throttle:30,1')
+        ->name('posts.comments.update');
+    Route::delete('/posts/{postId}/comments/{commentId}', [PostController::class, 'deleteComment'])
+        ->middleware('throttle:30,1')
+        ->name('posts.comments.destroy');
 });
 
 // Rutas de administración (requieren autenticación y rol de admin)

@@ -477,5 +477,259 @@ class PostController extends Controller
         }
     }
 
+    /**
+     * Obtener comentarios de un post con replies
+     * 
+     * GET /api/posts/{id}/comments
+     */
+    public function getComments(Request $request, $id)
+    {
+        try {
+            $post = Post::findOrFail($id);
+            
+            // Obtener solo comentarios principales (sin parent)
+            $comments = $post->comments()
+                ->with(['user', 'replies' => function($query) {
+                    $query->with('user')->orderBy('created_at', 'asc');
+                }])
+                ->whereNull('parent_comment_id')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($comment) {
+                    return $this->formatCommentData($comment);
+                });
+            
+            return response()->json([
+                'success' => true,
+                'data' => $comments,
+                'count' => $comments->count(),
+            ], 200);
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Post no encontrado',
+                'data' => []
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Error fetching comments: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener comentarios',
+                'data' => []
+            ], 500);
+        }
+    }
+
+    /**
+     * Formatear datos de comentario con replies
+     */
+    private function formatCommentData($comment)
+    {
+        return [
+            'id' => $comment->id,
+            'post_id' => $comment->post_id,
+            'user_id' => $comment->user_id,
+            'parent_comment_id' => $comment->parent_comment_id,
+            'comment' => $comment->comment,
+            'author' => $comment->user->name,
+            'avatar' => $comment->user->avatar_path ? '👤' : '👤',
+            'avatar_url' => $comment->user->avatar_url,
+            'timestamp' => $comment->created_at->diffForHumans(),
+            'created_at' => $comment->created_at,
+            'replies' => $comment->replies ? $comment->replies->map(fn($reply) => $this->formatCommentData($reply))->toArray() : [],
+        ];
+    }
+
+    /**
+     * Crear un comentario en un post (o respuesta a un comentario)
+     * 
+     * POST /api/posts/{id}/comments
+     */
+    public function addComment(Request $request, $id)
+    {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado',
+                ], 401);
+            }
+
+            $post = Post::findOrFail($id);
+            
+            // Validar comentario
+            $request->validate([
+                'comment' => 'required|string|min:1|max:1000',
+                'parent_comment_id' => 'nullable|integer|exists:post_comments,id',
+            ]);
+            
+            // Crear comentario
+            $comment = $post->comments()->create([
+                'user_id' => $user->id,
+                'comment' => $request->comment,
+                'parent_comment_id' => $request->parent_comment_id ?? null,
+            ]);
+            
+            // Incrementar contador de comentarios del post (solo si es comentario principal)
+            if (!$request->parent_comment_id) {
+                $post->comments_count = ($post->comments_count ?? 0) + 1;
+                $post->save();
+            }
+            
+            // Cargar la relación del usuario
+            $comment->load('user');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Comentario añadido',
+                'data' => $this->formatCommentData($comment)
+            ], 201);
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Post no encontrado',
+            ], 404);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos inválidos',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error adding comment: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al añadir comentario',
+            ], 500);
+        }
+    }
+
+    /**
+     * Actualizar un comentario en un post
+     * 
+     * PUT /api/posts/{postId}/comments/{commentId}
+     */
+    public function updateComment(Request $request, $postId, $commentId)
+    {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado',
+                ], 401);
+            }
+
+            $post = Post::findOrFail($postId);
+            $comment = $post->comments()->findOrFail($commentId);
+            
+            // Verificar que el comentario es del usuario actual
+            if ($comment->user_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No puedes editar este comentario',
+                ], 403);
+            }
+            
+            // Validar comentario
+            $request->validate([
+                'comment' => 'required|string|min:1|max:1000',
+            ]);
+            
+            // Actualizar comentario
+            $comment->update([
+                'comment' => $request->comment,
+            ]);
+            
+            // Cargar la relación del usuario
+            $comment->load('user');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Comentario actualizado',
+                'data' => $this->formatCommentData($comment)
+            ], 200);
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Comentario o post no encontrado',
+            ], 404);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos inválidos',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error updating comment: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar comentario',
+            ], 500);
+        }
+    }
+
+    /**
+     * Eliminar un comentario en un post
+     * 
+     * DELETE /api/posts/{postId}/comments/{commentId}
+     */
+    public function deleteComment(Request $request, $postId, $commentId)
+    {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado',
+                ], 401);
+            }
+
+            $post = Post::findOrFail($postId);
+            $comment = $post->comments()->findOrFail($commentId);
+            
+            // Verificar que el comentario es del usuario actual o es admin
+            if ($comment->user_id !== $user->id && !$user->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No puedes eliminar este comentario',
+                ], 403);
+            }
+            
+            // Eliminar comentario
+            $comment->delete();
+            
+            // Decrementar contador de comentarios del post
+            $post->comments_count = max(0, ($post->comments_count ?? 1) - 1);
+            $post->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Comentario eliminado',
+                'comments_count' => $post->comments_count,
+            ], 200);
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Comentario o post no encontrado',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Error deleting comment: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar comentario',
+            ], 500);
+        }
+    }
+
 }
 

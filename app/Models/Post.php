@@ -41,6 +41,14 @@ class Post extends Model
     }
 
     /**
+     * Relación con los comentarios del post
+     */
+    public function comments()
+    {
+        return $this->hasMany(PostComment::class);
+    }
+
+    /**
      * Obtener la URL completa del archivo del post
      */
     public function getFileUrlAttribute()
