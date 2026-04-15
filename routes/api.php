@@ -47,6 +47,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::match(['post', 'put', 'patch'], '/profile/avatar', [AuthController::class, 'updateAvatar']);
     Route::delete('/profile/avatar', [AuthController::class, 'deleteAvatar']);
 
+    // Obtener IDs de posts que el usuario ya le dio like
+    Route::get('/user/liked-posts', [PostController::class, 'getUserLikedPosts']);
+
     // Rutas de intereses
     Route::get('/profile/interests', [ProfileController::class, 'getInterests']);
     Route::match(['post', 'put', 'patch'], '/profile/interests', [ProfileController::class, 'updateInterests']);
@@ -106,6 +109,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/posts/{id}', [PostController::class, 'destroy'])
         ->middleware('throttle:30,1')
         ->name('posts.destroy');
+    Route::post('/posts/{id}/like', [PostController::class, 'like'])
+        ->middleware('throttle:60,1')
+        ->name('posts.like');
+    Route::post('/posts/{id}/unlike', [PostController::class, 'unlike'])
+        ->middleware('throttle:60,1')
+        ->name('posts.unlike');
 });
 
 // Rutas de administración (requieren autenticación y rol de admin)

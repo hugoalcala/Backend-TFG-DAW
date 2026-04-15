@@ -33,6 +33,14 @@ class Post extends Model
     }
 
     /**
+     * Relación con los likes del post
+     */
+    public function likes()
+    {
+        return $this->hasMany(PostLike::class);
+    }
+
+    /**
      * Obtener la URL completa del archivo del post
      */
     public function getFileUrlAttribute()

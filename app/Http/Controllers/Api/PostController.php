@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Post;
+use App\Models\PostLike;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -329,4 +330,152 @@ class PostController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Dar like a un post
+     * 
+     * POST /api/posts/{id}/like
+     */
+    public function like(Request $request, $id)
+    {
+        try {
+            $user = $request->user();
+            $post = Post::findOrFail($id);
+
+            // Verificar si el usuario ya dio like
+            $existingLike = PostLike::where('user_id', $user->id)
+                ->where('post_id', $id)
+                ->first();
+
+            if ($existingLike) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya le has dado like a este post',
+                ], 422);
+            }
+
+            // Crear el like
+            PostLike::create([
+                'user_id' => $user->id,
+                'post_id' => $id,
+            ]);
+
+            // Incrementar likes_count
+            $post->likes_count = ($post->likes_count ?? 0) + 1;
+            $post->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Like agregado',
+                'likes_count' => $post->likes_count,
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Post no encontrado',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Error al dar like: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al dar like',
+            ], 500);
+        }
+    }
+
+    /**
+     * Quitar like de un post
+     * 
+     * POST /api/posts/{id}/unlike
+     */
+    public function unlike(Request $request, $id)
+    {
+        try {
+            $user = $request->user();
+            $post = Post::findOrFail($id);
+
+            // Buscar y eliminar el like
+            $like = PostLike::where('user_id', $user->id)
+                ->where('post_id', $id)
+                ->first();
+
+            if (!$like) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No has dado like a este post',
+                ], 422);
+            }
+
+            $like->delete();
+
+            // Decrementar likes_count
+            $post->likes_count = max(0, ($post->likes_count ?? 1) - 1);
+            $post->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Like removido',
+                'likes_count' => $post->likes_count,
+            ], 200);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Post no encontrado',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Error al remover like: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al remover like',
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener IDs de posts que el usuario ya le dio like
+     * 
+     * GET /api/user/liked-posts
+     */
+    public function getUserLikedPosts(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario no autenticado',
+                    'data' => []
+                ], 401);
+            }
+            
+            $likedPostIds = PostLike::where('user_id', $user->id)
+                ->pluck('post_id')
+                ->map(fn($id) => (int)$id)
+                ->toArray();
+            
+            Log::info("User {$user->id} liked posts: " . json_encode($likedPostIds));
+            
+            return response()->json([
+                'success' => true,
+                'data' => $likedPostIds,
+                'count' => count($likedPostIds),
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching user liked posts: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener likes',
+                'data' => []
+            ], 500);
+        }
+    }
+
 }
+
