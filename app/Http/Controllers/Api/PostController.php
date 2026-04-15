@@ -284,10 +284,19 @@ class PostController extends Controller
     {
         try {
             $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autenticado',
+                ], 401);
+            }
+            
             $post = Post::findOrFail($id);
 
             // Verificar que es el dueño del post
             if ($post->user_id !== $user->id) {
+                Log::warning("Usuario {$user->id} intentó eliminar post {$id} del usuario {$post->user_id}");
                 return response()->json([
                     'success' => false,
                     'message' => 'No tienes permiso para eliminar este post',
@@ -312,11 +321,11 @@ class PostController extends Controller
                 'message' => 'Post no encontrado',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Error al eliminar post: ' . $e->getMessage());
+            Log::error('Error al eliminar post: ' . $e->getMessage() . '\n' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar el post',
+                'message' => 'Error al eliminar el post: ' . $e->getMessage(),
             ], 500);
         }
     }
