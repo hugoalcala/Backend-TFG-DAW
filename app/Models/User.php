@@ -162,4 +162,12 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Interest::class, 'interest_user');
     }
+
+    /**
+     * Relación con los comentarios del usuario
+     */
+    public function comments()
+    {
+        return $this->hasMany(PostComment::class);
+    }
 }

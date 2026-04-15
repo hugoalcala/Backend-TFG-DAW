@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ProductivityMetricsController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\PostController;
 
 // Rutas de autenticación pública
 Route::post('/register', [AuthController::class, 'register']);
@@ -45,6 +46,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::match(['post', 'put', 'patch'], '/profile', [AuthController::class, 'updateProfile']);
     Route::match(['post', 'put', 'patch'], '/profile/avatar', [AuthController::class, 'updateAvatar']);
     Route::delete('/profile/avatar', [AuthController::class, 'deleteAvatar']);
+
+    // Obtener IDs de posts que el usuario ya le dio like
+    Route::get('/user/liked-posts', [PostController::class, 'getUserLikedPosts']);
 
     // Rutas de intereses
     Route::get('/profile/interests', [ProfileController::class, 'getInterests']);
@@ -91,6 +95,40 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/teachers/{teacherId}/ratings/{ratingId}/report', [RatingController::class, 'reportRating'])
         ->middleware('throttle:30,1')
         ->name('ratings.report');
+
+    // Rutas de posts/foro
+    Route::get('/posts', [PostController::class, 'index'])
+        ->middleware('throttle:60,1')
+        ->name('posts.index');
+    Route::post('/posts', [PostController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('posts.store');
+    Route::match(['put', 'post'], '/posts/{id}', [PostController::class, 'update'])
+        ->middleware('throttle:30,1')
+        ->name('posts.update');
+    Route::delete('/posts/{id}', [PostController::class, 'destroy'])
+        ->middleware('throttle:30,1')
+        ->name('posts.destroy');
+    Route::post('/posts/{id}/like', [PostController::class, 'like'])
+        ->middleware('throttle:60,1')
+        ->name('posts.like');
+    Route::post('/posts/{id}/unlike', [PostController::class, 'unlike'])
+        ->middleware('throttle:60,1')
+        ->name('posts.unlike');
+    
+    // Rutas de comentarios en posts
+    Route::get('/posts/{id}/comments', [PostController::class, 'getComments'])
+        ->middleware('throttle:60,1')
+        ->name('posts.comments.index');
+    Route::post('/posts/{id}/comments', [PostController::class, 'addComment'])
+        ->middleware('throttle:30,1')
+        ->name('posts.comments.store');
+    Route::put('/posts/{postId}/comments/{commentId}', [PostController::class, 'updateComment'])
+        ->middleware('throttle:30,1')
+        ->name('posts.comments.update');
+    Route::delete('/posts/{postId}/comments/{commentId}', [PostController::class, 'deleteComment'])
+        ->middleware('throttle:30,1')
+        ->name('posts.comments.destroy');
 });
 
 // Rutas de administración (requieren autenticación y rol de admin)
