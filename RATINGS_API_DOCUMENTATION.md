@@ -2,7 +2,7 @@
 
 ## Implementación Completada ✅
 
-Se han implementado exitosamente los **4 endpoints** para gestionar reseñas y calificaciones de profesores:
+Se han implementado exitosamente los **5 endpoints** para gestionar reseñas y calificaciones de profesores:
 
 | Método | Ruta | Autenticación | Descripción |
 |--------|------|---------------|------------|
@@ -10,6 +10,7 @@ Se han implementado exitosamente los **4 endpoints** para gestionar reseñas y c
 | **POST** | `/api/teachers/{teacherId}/ratings` | ✅ Sí | Crear/actualizar reseña |
 | **PUT** | `/api/teachers/{teacherId}/ratings/{ratingId}` | ✅ Sí | Actualizar reseña existente |
 | **DELETE** | `/api/teachers/{teacherId}/ratings/{ratingId}` | ✅ Sí | Eliminar reseña |
+| **POST** | `/api/teachers/{teacherId}/ratings/{ratingId}/report` | ✅ Sí | Reportar reseña inapropiada |
 
 ---
 
@@ -220,6 +221,69 @@ Authorization: Bearer {token}
 
 ---
 
+### 5. POST `/api/teachers/{teacherId}/ratings/{ratingId}/report` (Protegido)
+**Reportar una reseña inapropiada**
+
+**Autenticación:** ✅ Requerida (Bearer Token)
+
+**Rate Limiting:** 30 requests/minute
+
+**Headers Requeridos:**
+```http
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Parámetros:**
+- `teacherId` (URL parameter): ID del profesor
+- `ratingId` (URL parameter): ID de la reseña a reportar
+
+**Body (Payload):**
+```json
+{
+  "reason": "offensive_content",
+  "details": "Contiene lenguaje ofensivo"
+}
+```
+
+**Valores permitidos para `reason`:**
+- `offensive_content` - Contenido ofensivo
+- `spam` - Spam o anuncio
+- `fake_review` - Reseña falsa
+- `inappropriate` - Contenido inapropiado
+- `other` - Otro
+
+**Validaciones:**
+- ✅ `reason` es **OBLIGATORIO** (debe ser uno de los valores permitidos)
+- ✅ `details` es **OPCIONAL** (máximo 500 caracteres)
+- ✅ No se puede reportar la misma reseña dos veces desde el mismo usuario
+- ✅ Verifica que la reseña exista
+- ✅ Verifica que la reseña pertenece al profesor especificado
+
+**Respuesta Exitosa (201):**
+```json
+{
+  "success": true,
+  "message": "Reporte registrado exitosamente",
+  "data": {
+    "report_id": 1
+  }
+}
+```
+
+**Códigos de Error:**
+
+| Código | Mensaje | Causa |
+|--------|---------|-------|
+| 400 | La reseña no pertenece a este profesor | Inconsistencia de datos |
+| 401 | No autenticado | Falta token Bearer |
+| 404 | Reseña no encontrada | `ratingId` no existe |
+| 409 | Ya has reportado esta reseña anteriormente | Reporte duplicado del mismo usuario |
+| 422 | Error de validación | `reason` no permitido o `details` > 500 chars |
+| 500 | Error al registrar el reporte | Error del servidor |
+
+---
+
 ## 🗂️ Archivos Creados/Modificados
 
 ### Nuevos Archivos:
@@ -229,22 +293,34 @@ Authorization: Bearer {token}
 2. **Migración**: `database/migrations/2026_04_13_100000_add_unique_constraint_to_ratings_table.php`
    - Agrega constraint único (ejecutado después de la primera migración)
 
-3. **Modelo**: `app/Models/Rating.php`
+3. **Migración**: `database/migrations/2026_04_13_110000_create_rating_reports_table.php`
+   - Crea tabla `rating_reports` con campos para denuncias
+
+4. **Modelo**: `app/Models/Rating.php`
    - Modelo con relaciones a User (teacher y student)
 
-4. **Controlador**: `app/Http/Controllers/Api/RatingController.php`
-   - Métodos: `store()`, `getTeacherRatings()`, `update()`, `destroy()`
+5. **Modelo**: `app/Models/RatingReport.php`
+   - Modelo para los reportes de reseñas
+
+6. **Controlador**: `app/Http/Controllers/Api/RatingController.php`
+   - Métodos: `store()`, `getTeacherRatings()`, `update()`, `destroy()`, `reportRating()`
    - Helper privado: `calculateTeacherStats(int $teacherId): array`
 
 ### Archivos Modificados:
 1. **Modelo User**: Agregadas relaciones
    - `ratings()`: Reseñas que recibe como profesor
    - `givenRatings()`: Reseñas que ha dado como estudiante
+   - `createdReports()`: Reportes que ha creado
+   - `reviewedReports()`: Reportes que ha revisado como admin
 
-2. **Rutas**: `routes/api.php`
+2. **Modelo Rating**: Agregada relación
+   - `reports()`: Reportes asociados a esta reseña
+
+3. **Rutas**: `routes/api.php`
    - Importación de RatingController
    - Todas las rutas con rate limiting aplicado
    - Names descriptivos para cada ruta
+   - Nueva ruta POST para reportar reseñas
 
 ---
 
