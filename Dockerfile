@@ -4,12 +4,10 @@ FROM php:8.4-apache
 RUN apt-get update && apt-get install -y \
     git \
     curl \
-    libpq-dev \
     libzip-dev \
     zip \
     unzip \
-    && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-    && docker-php-ext-install pdo pdo_pgsql zip \
+    && docker-php-ext-install pdo pdo_mysql zip \
     && apt-get clean
 
 # Instalar Composer
