@@ -21,13 +21,13 @@ return [
 
     'allowed_origins' => [
         // ========== DESARROLLO LOCAL ==========
-        'http://localhost:3000',      // Frontend local (puerto por defecto)
-        'http://localhost:5173',      // Vite dev server (defecto)
-        'http://localhost:8000',      // Backend local
-        'http://127.0.0.1:5173',      // Alternativa local
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://localhost:8000',
+        'http://127.0.0.1:5173',
         
         // ========== PRODUCCIÓN ==========
-        'https://tu-frontend.netlify.app',  // ← REEMPLAZA CON TU DOMINIO DE NETLIFY
+        'https://duconnect.netlify.app',
     ],
 
     'allowed_origins_patterns' => [],
