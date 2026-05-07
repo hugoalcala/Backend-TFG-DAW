@@ -34,6 +34,10 @@ RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf
 # Copiar proyecto
 COPY . /var/www/html
 
+# Copiar entrypoint script
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Instalar dependencias
 WORKDIR /var/www/html
 RUN composer install --no-dev --optimize-autoloader
@@ -41,5 +45,5 @@ RUN composer install --no-dev --optimize-autoloader
 # Permisos
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Comando para correr migraciones y apache
-CMD php artisan migrate:fresh --force && apache2-foreground
+# Comando para ejecutar entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
