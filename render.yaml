@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: educonnect-backend
+    runtime: php
+    buildCommand: composer install && php artisan migrate --force
+    startCommand: vendor/bin/heroku-php-apache2 public/
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+    
+  - type: pserv
+    name: educonnect-db
+    ipAllowList: [] # allow all
+    databaseName: educonnect
+    user: postgres
+    version: "15"
+
+envVarGroups:
+  - name: Laravel
+    envVars:
+      - key: APP_KEY
+        value: base64:qtsO4bHQ4Cw4CbNCq2UEecQyYnoHBc1kKPc+edrz9Mk=
+      - key: APP_URL
+        fromService:
+          type: web
+          name: educonnect-backend
+          property: url
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromService:
+          type: pserv
+          name: educonnect-db
+          property: host
+      - key: DB_PORT
+        fromService:
+          type: pserv
+          name: educonnect-db
+          property: port
+      - key: DB_DATABASE
+        fromService:
+          type: pserv
+          name: educonnect-db
+          property: database
+      - key: DB_USERNAME
+        fromService:
+          type: pserv
+          name: educonnect-db
+          property: user
+      - key: DB_PASSWORD
+        fromService:
+          type: pserv
+          name: educonnect-db
+          property: password
