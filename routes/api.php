@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\MessageController;
 
 // Rutas de autenticación pública
 Route::post('/register', [AuthController::class, 'register']);
@@ -129,7 +130,52 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/posts/{postId}/comments/{commentId}', [PostController::class, 'deleteComment'])
         ->middleware('throttle:30,1')
         ->name('posts.comments.destroy');
-});
+    
+    // Rutas de mensajes/chat
+    Route::get('/messages/conversations', [MessageController::class, 'getConversations'])
+        ->middleware('throttle:60,1')
+        ->name('messages.conversations.index');
+    Route::post('/messages/conversations', [MessageController::class, 'createConversation'])
+        ->middleware('throttle:30,1')
+        ->name('messages.conversations.store');
+    Route::get('/messages/conversations/{conversationId}', [MessageController::class, 'getConversation'])
+        ->middleware('throttle:60,1')
+        ->name('messages.conversations.show');
+    Route::post('/messages/send', [MessageController::class, 'sendMessage'])
+        ->middleware('throttle:60,1')
+        ->name('messages.send');
+    Route::put('/messages/conversations/{conversationId}/read', [MessageController::class, 'markAsRead'])
+        ->middleware('throttle:30,1')
+        ->name('messages.mark-read');
+    
+    // Rutas de admin para avisos/notificaciones
+    Route::post('/admin/notices', [MessageController::class, 'sendAdminNotice'])
+        ->middleware('throttle:30,1')
+        ->name('admin.notices.send');
+    Route::get('/admin/notices', [MessageController::class, 'getAdminNotices'])
+        ->middleware('throttle:60,1')
+        ->name('admin.notices.index');
+    // Rutas para reportar usuarios y eliminar conversaciones
+    Route::post('/messages/report-user', [MessageController::class, 'reportUser'])
+        ->middleware('throttle:10,1')
+        ->name('messages.report-user');
+    Route::delete('/messages/conversations/{conversationId}', [MessageController::class, 'deleteConversation'])
+        ->middleware('throttle:30,1')
+        ->name('messages.delete-conversation');
+    
+    // Rutas de admin para gestionar denuncias de usuarios
+    Route::get('/messages/reports', [MessageController::class, 'getAllReports'])
+        ->middleware('throttle:30,1')
+        ->name('messages.reports.index');
+    Route::get('/messages/reports/{reportId}', [MessageController::class, 'getReportDetails'])
+        ->middleware('throttle:30,1')
+        ->name('messages.reports.show');
+    Route::put('/messages/reports/{reportId}/approve', [MessageController::class, 'approveReport'])
+        ->middleware('throttle:30,1')
+        ->name('messages.reports.approve');
+    Route::put('/messages/reports/{reportId}/reject', [MessageController::class, 'rejectReport'])
+        ->middleware('throttle:30,1')
+        ->name('messages.reports.reject');});
 
 // Rutas de administración (requieren autenticación y rol de admin)
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
