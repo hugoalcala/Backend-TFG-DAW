@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\PaymentController;
 
 // Rutas de autenticación pública
 Route::post('/register', [AuthController::class, 'register']);
@@ -36,6 +37,10 @@ Route::get('/interests', [ProfileController::class, 'listAllInterests']);
 // Rutas de autenticación con Google
 Route::get('/auth/google', [AuthController::class, 'googleRedirect']);
 Route::post('/auth/google/callback', [AuthController::class, 'googleCallback']);
+
+// Ruta pública para test de claves de Stripe
+Route::get('/payments/test-stripe-keys', [PaymentController::class, 'testStripeKeys'])
+    ->name('payments.test-stripe-keys');
 
 // Rutas protegidas (requieren autenticación)
 Route::middleware('auth:sanctum')->group(function () {
@@ -175,7 +180,41 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('messages.reports.approve');
     Route::put('/messages/reports/{reportId}/reject', [MessageController::class, 'rejectReport'])
         ->middleware('throttle:30,1')
-        ->name('messages.reports.reject');});
+        ->name('messages.reports.reject');
+
+    // Rutas de pagos y contrataciones
+    Route::get('/payments/stripe-key', [PaymentController::class, 'getStripePublicKey'])
+        ->name('payments.stripe-key');
+    Route::post('/payments/create-intent', [PaymentController::class, 'createPaymentIntent'])
+        ->middleware('throttle:30,1')
+        ->name('payments.create-intent');
+    Route::post('/payments/create-checkout-session', [PaymentController::class, 'createCheckoutSession'])
+        ->middleware('throttle:30,1')
+        ->name('payments.create-checkout');
+    Route::post('/payments/confirm', [PaymentController::class, 'confirmPayment'])
+        ->middleware('throttle:30,1')
+        ->name('payments.confirm');
+    Route::post('/payments/confirm-checkout', [PaymentController::class, 'confirmCheckoutSession'])
+        ->middleware('throttle:30,1')
+        ->name('payments.confirm-checkout');
+    
+    // Rutas de contrataciones (bookings)
+    Route::get('/bookings', [PaymentController::class, 'getBookings'])
+        ->middleware('throttle:60,1')
+        ->name('bookings.index');
+    Route::get('/bookings/{bookingId}', [PaymentController::class, 'getBookingDetails'])
+        ->middleware('throttle:60,1')
+        ->name('bookings.show');
+    Route::post('/bookings/{bookingId}/cancel', [PaymentController::class, 'cancelBooking'])
+        ->middleware('throttle:30,1')
+        ->name('bookings.cancel');
+    Route::post('/bookings/{bookingId}/accept', [PaymentController::class, 'acceptBooking'])
+        ->middleware('throttle:30,1')
+        ->name('bookings.accept');
+    Route::post('/bookings/{bookingId}/reject', [PaymentController::class, 'rejectBooking'])
+        ->middleware('throttle:30,1')
+        ->name('bookings.reject');
+});
 
 // Rutas de administración (requieren autenticación y rol de admin)
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
