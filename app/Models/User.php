@@ -170,4 +170,36 @@ class User extends Authenticatable
     {
         return $this->hasMany(PostComment::class);
     }
+
+    /**
+     * Relación con las conversaciones iniciadas por el usuario
+     */
+    public function conversationsAsUser()
+    {
+        return $this->hasMany(Conversation::class, 'user_id');
+    }
+
+    /**
+     * Relación con las conversaciones donde el usuario es destinatario
+     */
+    public function conversationsAsRecipient()
+    {
+        return $this->hasMany(Conversation::class, 'recipient_id');
+    }
+
+    /**
+     * Relación con los mensajes enviados
+     */
+    public function sentMessages()
+    {
+        return $this->hasMany(Message::class, 'from_user_id');
+    }
+
+    /**
+     * Relación con los mensajes recibidos
+     */
+    public function receivedMessages()
+    {
+        return $this->hasMany(Message::class, 'to_user_id');
+    }
 }

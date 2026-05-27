@@ -10,8 +10,10 @@ class Message extends Model
     use HasFactory;
 
     protected $fillable = [
+        'conversation_id',
         'from_user_id',
         'to_user_id',
+        'message',
         'subject',
         'body',
         'read_at',
@@ -20,6 +22,14 @@ class Message extends Model
     protected $casts = [
         'read_at' => 'datetime',
     ];
+
+    /**
+     * Relación con la conversación
+     */
+    public function conversation()
+    {
+        return $this->belongsTo(Conversation::class);
+    }
 
     /**
      * Relación con el usuario que envía el mensaje
