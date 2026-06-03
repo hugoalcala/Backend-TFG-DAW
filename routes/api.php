@@ -160,6 +160,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/notices', [MessageController::class, 'getAdminNotices'])
         ->middleware('throttle:60,1')
         ->name('admin.notices.index');
+    // Denunciar un post
+    Route::post('/posts/{postId}/report', [MessageController::class, 'reportPost'])
+        ->middleware('throttle:10,1')
+        ->name('posts.report');
+
     // Rutas para reportar usuarios y eliminar conversaciones
     Route::post('/messages/report-user', [MessageController::class, 'reportUser'])
         ->middleware('throttle:10,1')

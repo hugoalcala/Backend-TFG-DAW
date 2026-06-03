@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Message;
 use App\Models\Conversation;
+use App\Models\Post;
 use App\Models\User;
 use App\Models\UserReport;
 use Illuminate\Http\Request;
@@ -488,6 +489,55 @@ class MessageController extends Controller
     }
 
     /**
+     * Denunciar un post
+     */
+    public function reportPost(Request $request, $postId)
+    {
+        $currentUser = Auth::user();
+
+        $request->validate([
+            'reason'  => 'required|string|max:255',
+            'details' => 'nullable|string|max:5000',
+        ]);
+
+        $post = Post::findOrFail($postId);
+
+        if ($post->user_id === $currentUser->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No puedes denunciar tu propio post',
+            ], 400);
+        }
+
+        $existingReport = UserReport::where('post_id', $postId)
+            ->where('reported_by_user_id', $currentUser->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->first();
+
+        if ($existingReport) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ya has denunciado este post anteriormente',
+            ], 400);
+        }
+
+        UserReport::create([
+            'reported_user_id'    => $post->user_id,
+            'reported_by_user_id' => $currentUser->id,
+            'post_id'             => $post->id,
+            'report_type'         => 'post',
+            'reason'              => $request->input('reason'),
+            'details'             => $request->input('details'),
+            'status'              => 'pending',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Denuncia enviada a administración',
+        ]);
+    }
+
+    /**
      * Eliminar una conversación
      */
     public function deleteConversation($conversationId)
@@ -539,6 +589,7 @@ class MessageController extends Controller
         $query = UserReport::with([
             'reportedUser:id,name,email,avatar_path,role',
             'reporter:id,name,email',
+            'post:id,content,user_id',
         ]);
 
         // Filtrar por estado
@@ -583,6 +634,7 @@ class MessageController extends Controller
             'reportedUser:id,name,email,avatar_path,role,created_at',
             'reporter:id,name,email',
             'reviewer:id,name,email',
+            'post:id,content,user_id',
         ])->find($reportId);
 
         if (!$report) {
@@ -629,18 +681,30 @@ class MessageController extends Controller
             ], 400);
         }
 
-        // Actualizar el reporte
-        $report->update([
-            'status' => 'approved',
-            'admin_notes' => $request->input('admin_notes'),
-            'reviewed_by_user_id' => $currentUser->id,
-            'reviewed_at' => now(),
-        ]);
+        // Si es denuncia de post, eliminar el post
+        if ($report->report_type === 'post' && $report->post_id) {
+            Post::where('id', $report->post_id)->delete();
+            // Marcar todas las denuncias de ese post como aprobadas
+            UserReport::where('post_id', $report->post_id)
+                ->where('status', 'pending')
+                ->update([
+                    'status'               => 'approved',
+                    'reviewed_by_user_id'  => $currentUser->id,
+                    'reviewed_at'          => now(),
+                ]);
+        } else {
+            $report->update([
+                'status'               => 'approved',
+                'admin_notes'          => $request->input('admin_notes'),
+                'reviewed_by_user_id'  => $currentUser->id,
+                'reviewed_at'          => now(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Denuncia aprobada exitosamente',
-            'data' => $report,
+            'data'    => $report,
         ]);
     }
 

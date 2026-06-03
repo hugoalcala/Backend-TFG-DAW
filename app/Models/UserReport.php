@@ -12,6 +12,8 @@ class UserReport extends Model
     protected $fillable = [
         'reported_user_id',
         'reported_by_user_id',
+        'post_id',
+        'report_type',
         'reason',
         'details',
         'status',
@@ -48,5 +50,13 @@ class UserReport extends Model
     public function reviewer()
     {
         return $this->belongsTo(User::class, 'reviewed_by_user_id');
+    }
+
+    /**
+     * Relación con el post denunciado (solo para report_type = 'post')
+     */
+    public function post()
+    {
+        return $this->belongsTo(\App\Models\Post::class);
     }
 }
