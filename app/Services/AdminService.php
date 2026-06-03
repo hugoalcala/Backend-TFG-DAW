@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Post;
 use App\Models\TeacherRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ class AdminService
             'totalUsers' => User::count(),
             'totalTeachers' => User::where('role', 'teacher')->count(),
             'pendingTeachers' => TeacherRequest::where('status', 'pending')->count(),
-            'totalPosts' => 0, // TODO: Implementar cuando tengamos tabla de posts
+            'totalPosts' => Post::count(),
         ];
     }
 
