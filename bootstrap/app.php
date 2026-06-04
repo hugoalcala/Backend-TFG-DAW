@@ -17,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
         
         // Configurar hosts confiables
-        $middleware->trustHosts(at: ['localhost', 'localhost:5173', '127.0.0.1']);
+        $middleware->trustHosts(at: ['localhost', 'localhost:5173', '127.0.0.1', 'backend-tfg-daw-production.up.railway.app']);
         
         // Excluir rutas de API de la validación CSRF
         $middleware->validateCsrfTokens(except: ['api/*']);
