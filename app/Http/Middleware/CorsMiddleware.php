@@ -15,10 +15,13 @@ class CorsMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Manejar peticiones OPTIONS (preflight)
+        $allowedOrigins = config('cors.allowed_origins', []);
+        $origin = $request->headers->get('Origin');
+        $allowedOrigin = in_array($origin, $allowedOrigins) ? $origin : '';
+
         if ($request->getMethod() === 'OPTIONS') {
             return response('', 200)
-                ->header('Access-Control-Allow-Origin', 'http://localhost:5173')
+                ->header('Access-Control-Allow-Origin', $allowedOrigin)
                 ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
                 ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept')
                 ->header('Access-Control-Allow-Credentials', 'true')
@@ -27,9 +30,8 @@ class CorsMiddleware
 
         $response = $next($request);
 
-        // Agregar headers CORS a todas las respuestas
         return $response
-            ->header('Access-Control-Allow-Origin', 'http://localhost:5173')
+            ->header('Access-Control-Allow-Origin', $allowedOrigin)
             ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
             ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept')
             ->header('Access-Control-Allow-Credentials', 'true');
