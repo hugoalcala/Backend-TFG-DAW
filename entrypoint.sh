@@ -4,11 +4,11 @@ set -e
 # Esperar a que la BD esté lista
 echo "Esperando a que la base de datos esté lista..."
 for i in {1..30}; do
-    if php artisan tinker --execute="DB::connection()->getPDO();" 2>/dev/null; then
+    if php artisan db:show --no-ansi > /dev/null 2>&1; then
         echo "Base de datos lista!"
         break
     fi
-    echo "Intento $i/30..."
+    echo "Intento $i/30, reintentando..."
     sleep 2
 done
 
