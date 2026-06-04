@@ -29,6 +29,7 @@ RUN echo "<VirtualHost *:8080>\n\
 
 # Cambiar puerto de Apache a 8080
 RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 # Copiar proyecto
 COPY . /var/www/html
