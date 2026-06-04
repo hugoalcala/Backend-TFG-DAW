@@ -14,7 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Registrar middleware CORS global (debe ser primero)
-        $middleware->prepend(\App\Http\Middleware\CorsMiddleware::class);
+        $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
         
         // Configurar hosts confiables
         $middleware->trustHosts(at: ['localhost', 'localhost:5173', '127.0.0.1']);
