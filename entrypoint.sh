@@ -4,7 +4,7 @@ set -e
 # Esperar a que la BD esté lista
 echo "Esperando a que la base de datos esté lista..."
 for i in {1..30}; do
-    if php artisan db:show --no-ansi > /dev/null 2>&1; then
+    if php artisan migrate:status --no-ansi > /dev/null 2>&1; then
         echo "Base de datos lista!"
         break
     fi
