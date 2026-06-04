@@ -18,4 +18,6 @@ php artisan migrate:fresh --force
 
 # Iniciar Apache
 echo "Iniciando Apache..."
+a2dismod mpm_event 2>/dev/null || true
+a2enmod mpm_prefork 2>/dev/null || true
 apache2-foreground
