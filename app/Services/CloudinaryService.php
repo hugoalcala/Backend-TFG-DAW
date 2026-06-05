@@ -23,9 +23,13 @@ class CloudinaryService
 
     public function upload(UploadedFile $file, string $folder = 'uploads'): array
     {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $resourceType = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']) ? 'image'
+            : (in_array($extension, ['mp4', 'webm', 'avi', 'mov', 'mkv', 'flv']) ? 'video' : 'raw');
+
         $result = $this->cloudinary->uploadApi()->upload($file->getRealPath(), [
             'folder'           => $folder,
-            'resource_type'    => 'auto',
+            'resource_type'    => $resourceType,
             'use_filename'     => true,
             'unique_filename'  => true,
         ]);
