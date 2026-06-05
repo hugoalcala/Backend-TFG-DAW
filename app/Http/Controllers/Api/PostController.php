@@ -21,7 +21,9 @@ class PostController extends Controller
         if (str_starts_with($path, 'http')) {
             $publicId = CloudinaryService::extractPublicId($path);
             if ($publicId) {
-                (new CloudinaryService())->delete($publicId, 'auto');
+                $resourceType = str_contains($path, '/video/') ? 'video'
+                    : (str_contains($path, '/raw/') ? 'raw' : 'image');
+                (new CloudinaryService())->delete($publicId, $resourceType);
             }
         } else {
             Storage::disk('public')->delete($path);
