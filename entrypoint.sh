@@ -14,7 +14,7 @@ done
 
 # Ejecutar migraciones
 echo "Ejecutando migraciones..."
-php artisan migrate:fresh --force
+php artisan migrate --force
 
 # Iniciar Apache
 echo "Iniciando Apache..."
