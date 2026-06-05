@@ -191,9 +191,12 @@ class AuthController extends Controller
             if ($user->avatar_path) {
                 $this->deleteFile($user->avatar_path);
             }
-            $cloudinary = new CloudinaryService();
-            $result = $cloudinary->upload($request->file('avatar'), 'avatars');
-            $user->avatar_path = $result['url'];
+            if (env('CLOUDINARY_CLOUD_NAME')) {
+                $result = (new CloudinaryService())->upload($request->file('avatar'), 'avatars');
+                $user->avatar_path = $result['url'];
+            } else {
+                $user->avatar_path = $request->file('avatar')->store('avatars', 'public');
+            }
         }
 
         if (array_key_exists('name', $validated)) {

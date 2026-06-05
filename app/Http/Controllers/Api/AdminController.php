@@ -279,8 +279,12 @@ class AdminController extends Controller
                 ], 404);
             }
 
-            // Validar el path del certificado por seguridad
             $certificatePath = $teacherRequest->certificate_path;
+
+            // Si es URL de Cloudinary, redirigir directamente
+            if (str_starts_with($certificatePath, 'http')) {
+                return redirect($certificatePath);
+            }
 
             // Validar que el path no esté vacío
             if (empty($certificatePath)) {

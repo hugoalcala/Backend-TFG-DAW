@@ -134,10 +134,14 @@ class PostController extends Controller
                     ], 422);
                 }
 
-                // Subir a Cloudinary
-                $cloudinary = new CloudinaryService();
-                $result = $cloudinary->upload($file, 'posts');
-                $filePath = $result['url'];
+                // Subir archivo
+                if (env('CLOUDINARY_CLOUD_NAME')) {
+                    $result = (new CloudinaryService())->upload($file, 'posts');
+                    $filePath = $result['url'];
+                } else {
+                    $storedName = time() . '_' . uniqid() . '.' . $extension;
+                    $filePath = $file->storeAs('posts', $storedName, 'public');
+                }
                 $fileType = $this->getFileType($mimeType, $extension);
                 $fileName = $originalName;
             }

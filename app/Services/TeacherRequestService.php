@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\TeacherRequest;
 use App\Models\User;
+use App\Services\CloudinaryService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -28,8 +29,14 @@ class TeacherRequestService
         $certificatePath = null;
 
         try {
-            // Guardar certificado en disco privado
-            $certificatePath = $certificate->store('certificates', 'local');
+            // Subir certificado a Cloudinary si está configurado, si no guardar en local
+            if (env('CLOUDINARY_CLOUD_NAME')) {
+                $cloudinary = new CloudinaryService();
+                $result = $cloudinary->upload($certificate, 'certificates');
+                $certificatePath = $result['url'];
+            } else {
+                $certificatePath = $certificate->store('certificates', 'local');
+            }
 
             // Transacción atómica: verificar existencia, crear solicitud y actualizar usuario
             $teacherRequest = DB::transaction(function () use ($user, $data, $certificatePath) {
@@ -128,7 +135,14 @@ class TeacherRequestService
 
         // Eliminar certificado solo después de que la transacción se haya confirmado
         if ($certificatePath) {
-            Storage::disk('local')->delete($certificatePath);
+            if (str_starts_with($certificatePath, 'http')) {
+                $publicId = CloudinaryService::extractPublicId($certificatePath);
+                if ($publicId) {
+                    (new CloudinaryService())->delete($publicId, 'raw');
+                }
+            } else {
+                Storage::disk('local')->delete($certificatePath);
+            }
         }
 
         return true;
