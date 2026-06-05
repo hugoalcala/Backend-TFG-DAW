@@ -40,7 +40,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Instalar dependencias
 WORKDIR /var/www/html
-RUN composer install --no-dev --optimize-autoloader
+RUN composer update --no-dev --optimize-autoloader
 
 # Permisos
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
