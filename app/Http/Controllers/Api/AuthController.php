@@ -324,6 +324,8 @@ class AuthController extends Controller
             'redirect_uri' => $redirectUri,
             'response_type' => 'code',
             'scope' => implode(' ', $scopes),
+            'access_type' => 'offline',
+            'prompt' => 'consent',
         ]);
 
         return response()->json([
