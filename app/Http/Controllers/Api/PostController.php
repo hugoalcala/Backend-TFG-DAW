@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Post;
 use App\Models\PostLike;
+use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +16,18 @@ class PostController extends Controller
     /**
      * Determinar el tipo de archivo según la extensión
      */
+    private function deletePostFile(string $path): void
+    {
+        if (str_starts_with($path, 'http')) {
+            $publicId = CloudinaryService::extractPublicId($path);
+            if ($publicId) {
+                (new CloudinaryService())->delete($publicId, 'auto');
+            }
+        } else {
+            Storage::disk('public')->delete($path);
+        }
+    }
+
     private function getFileType(string $mimeType, string $extension): string
     {
         // Tipos de imagen
@@ -121,9 +134,10 @@ class PostController extends Controller
                     ], 422);
                 }
 
-                // Generar nombre único y guardar
-                $storedName = time() . '_' . uniqid() . '.' . $extension;
-                $filePath = $file->storeAs('posts', $storedName, 'public');
+                // Subir a Cloudinary
+                $cloudinary = new CloudinaryService();
+                $result = $cloudinary->upload($file, 'posts');
+                $filePath = $result['url'];
                 $fileType = $this->getFileType($mimeType, $extension);
                 $fileName = $originalName;
             }
@@ -207,17 +221,17 @@ class PostController extends Controller
             if ($request->hasFile('file')) {
                 // Eliminar archivo anterior
                 if ($post->file_path) {
-                    Storage::disk('public')->delete($post->file_path);
+                    $this->deletePostFile($post->file_path);
                 }
 
                 $file = $request->file('file');
                 $originalName = $file->getClientOriginalName();
                 $extension = strtolower($file->getClientOriginalExtension());
                 $mimeType = $file->getMimeType();
-                
+
                 // Validar extensiones
                 $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'webm', 'avi', 'mov', 'mkv', 'flv', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar'];
-                
+
                 if (!in_array($extension, $allowedExtensions)) {
                     return response()->json([
                         'success' => false,
@@ -225,9 +239,9 @@ class PostController extends Controller
                     ], 422);
                 }
 
-                $storedName = time() . '_' . uniqid() . '.' . $extension;
-                $filePath = $file->storeAs('posts', $storedName, 'public');
-                $post->file_path = $filePath;
+                $cloudinary = new CloudinaryService();
+                $result = $cloudinary->upload($file, 'posts');
+                $post->file_path = $result['url'];
                 $post->file_type = $this->getFileType($mimeType, $extension);
                 $post->file_name = $originalName;
             }
@@ -306,7 +320,7 @@ class PostController extends Controller
 
             // Eliminar archivo si existe
             if ($post->file_path) {
-                Storage::disk('public')->delete($post->file_path);
+                $this->deletePostFile($post->file_path);
             }
 
             $post->delete();

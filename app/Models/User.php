@@ -152,6 +152,9 @@ class User extends Authenticatable
             return null;
         }
 
+        if (str_starts_with($this->avatar_path, 'http')) {
+            return $this->avatar_path;
+        }
         return asset('storage/'.$this->avatar_path);
     }
 

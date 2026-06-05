@@ -41,6 +41,12 @@ return [
         'redirect_uri' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'cloudinary' => [
+        'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+        'api_key'    => env('CLOUDINARY_API_KEY'),
+        'api_secret' => env('CLOUDINARY_API_SECRET'),
+    ],
+
     'stripe' => [
         'public' => env('STRIPE_PUBLIC_KEY'),
         'secret' => env('STRIPE_SECRET_KEY'),

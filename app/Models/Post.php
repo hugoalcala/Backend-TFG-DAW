@@ -54,6 +54,9 @@ class Post extends Model
     public function getFileUrlAttribute()
     {
         if ($this->file_path) {
+            if (str_starts_with($this->file_path, 'http')) {
+                return $this->file_path;
+            }
             return asset('storage/' . $this->file_path);
         }
         return null;

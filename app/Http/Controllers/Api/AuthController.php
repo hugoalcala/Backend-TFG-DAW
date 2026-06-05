@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use App\Services\CloudinaryService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -182,16 +183,17 @@ class AuthController extends Controller
         ]);
 
         if ($request->boolean('remove_avatar') && $user->avatar_path) {
-            Storage::disk('public')->delete($user->avatar_path);
+            $this->deleteFile($user->avatar_path);
             $user->avatar_path = null;
         }
 
         if ($request->hasFile('avatar')) {
             if ($user->avatar_path) {
-                Storage::disk('public')->delete($user->avatar_path);
+                $this->deleteFile($user->avatar_path);
             }
-
-            $user->avatar_path = $request->file('avatar')->store('avatars', 'public');
+            $cloudinary = new CloudinaryService();
+            $result = $cloudinary->upload($request->file('avatar'), 'avatars');
+            $user->avatar_path = $result['url'];
         }
 
         if (array_key_exists('name', $validated)) {
@@ -232,6 +234,18 @@ class AuthController extends Controller
         $request->merge(['remove_avatar' => true]);
 
         return $this->updateProfile($request);
+    }
+
+    private function deleteFile(string $path): void
+    {
+        if (str_starts_with($path, 'http')) {
+            $publicId = CloudinaryService::extractPublicId($path);
+            if ($publicId) {
+                (new CloudinaryService())->delete($publicId, 'image');
+            }
+        } else {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     /**
