@@ -34,8 +34,14 @@ class CloudinaryService
             'unique_filename'  => true,
         ]);
 
+        $url = $result['secure_url'];
+        // Para archivos raw, Cloudinary no incluye la extensión en la URL — añadirla manualmente
+        if ($resourceType === 'raw' && !str_ends_with($url, '.' . $extension)) {
+            $url .= '.' . $extension;
+        }
+
         return [
-            'url'       => $result['secure_url'],
+            'url'       => $url,
             'public_id' => $result['public_id'],
         ];
     }
