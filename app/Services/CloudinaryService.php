@@ -27,12 +27,19 @@ class CloudinaryService
         $resourceType = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']) ? 'image'
             : (in_array($extension, ['mp4', 'webm', 'avi', 'mov', 'mkv', 'flv']) ? 'video' : 'raw');
 
-        $result = $this->cloudinary->uploadApi()->upload($file->getRealPath(), [
-            'folder'           => $folder,
-            'resource_type'    => $resourceType,
-            'use_filename'     => true,
-            'unique_filename'  => true,
-        ]);
+        $options = [
+            'folder'        => $folder,
+            'resource_type' => $resourceType,
+        ];
+
+        if ($resourceType === 'raw') {
+            $options['public_id'] = uniqid() . '_' . time() . '.' . $extension;
+        } else {
+            $options['use_filename']    = true;
+            $options['unique_filename'] = true;
+        }
+
+        $result = $this->cloudinary->uploadApi()->upload($file->getRealPath(), $options);
 
         return [
             'url'       => $result['secure_url'],
