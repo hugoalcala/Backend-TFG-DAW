@@ -12,16 +12,13 @@ class CloudinaryService
 
     public function __construct()
     {
-        Configuration::instance([
-            'cloud' => [
-                'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
-                'api_key'    => env('CLOUDINARY_API_KEY'),
-                'api_secret' => env('CLOUDINARY_API_SECRET'),
-            ],
-            'url' => ['secure' => true],
-        ]);
+        $cloudName = env('CLOUDINARY_CLOUD_NAME');
+        $apiKey    = env('CLOUDINARY_API_KEY');
+        $apiSecret = env('CLOUDINARY_API_SECRET');
 
-        $this->cloudinary = new Cloudinary();
+        $this->cloudinary = new Cloudinary(
+            "cloudinary://{$apiKey}:{$apiSecret}@{$cloudName}"
+        );
     }
 
     public function upload(UploadedFile $file, string $folder = 'uploads'): array
