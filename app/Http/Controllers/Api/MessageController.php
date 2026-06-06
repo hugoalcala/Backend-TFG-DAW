@@ -54,7 +54,9 @@ class MessageController extends Controller
                     'user_id' => $otherUser->id,
                     'recipient_id' => $otherUser->id,
                     'name' => $otherUser->role === 'admin' ? 'Administración' : ($otherUser->name ?? 'Usuario'),
-                    'avatar' => $otherUser->avatar_path ? asset('storage/' . $otherUser->avatar_path) : '👤',
+                    'avatar' => $otherUser->avatar_path
+                        ? (str_starts_with($otherUser->avatar_path, 'http') ? $otherUser->avatar_path : asset('storage/' . $otherUser->avatar_path))
+                        : '👤',
                     'lastMessage' => $lastMessage?->message ?? $lastMessage?->body ?? '',
                     'timestamp' => $lastMessage?->created_at?->format('H:i') ?? '',
                     'unread' => $conversation->messages()
@@ -140,7 +142,9 @@ class MessageController extends Controller
                 'user_id' => $otherUser->id,
                 'recipient_id' => $otherUser->id,
                 'name' => $otherUser->role === 'admin' ? 'Administración' : ($otherUser->name ?? 'Usuario'),
-                'avatar' => $otherUser->avatar_path ? asset('storage/' . $otherUser->avatar_path) : '👤',
+                'avatar' => $otherUser->avatar_path
+                    ? (str_starts_with($otherUser->avatar_path, 'http') ? $otherUser->avatar_path : asset('storage/' . $otherUser->avatar_path))
+                    : '👤',
                 'messages' => $messages->map(function ($msg) use ($currentUser) {
                     if ($msg->from_user_id === $currentUser->id) {
                         $fromUserName = 'Tú';
@@ -208,7 +212,9 @@ class MessageController extends Controller
                 'user_id' => $recipient->id,
                 'recipient_id' => $recipient->id,
                 'name' => $recipient->name ?? 'Usuario',
-                'avatar' => $recipient->avatar_path ? asset('storage/' . $recipient->avatar_path) : '👤',
+                'avatar' => $recipient->avatar_path
+                    ? (str_starts_with($recipient->avatar_path, 'http') ? $recipient->avatar_path : asset('storage/' . $recipient->avatar_path))
+                    : '👤',
                 'messages' => $conversation->messages->map(function ($msg) use ($currentUser) {
                     return [
                         'id' => $msg->id,
