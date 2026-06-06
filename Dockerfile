@@ -31,6 +31,9 @@ RUN echo "<VirtualHost *:8080>\n\
 RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
+# Aumentar límites de subida de PHP
+RUN echo "upload_max_filesize=10M\npost_max_size=10M" > /usr/local/etc/php/conf.d/uploads.ini
+
 # Copiar proyecto
 COPY . /var/www/html
 

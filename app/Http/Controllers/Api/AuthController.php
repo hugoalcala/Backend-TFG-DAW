@@ -178,7 +178,7 @@ class AuthController extends Controller
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
-            'avatar' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'avatar' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp,heic,heif|max:10240',
             'remove_avatar' => 'sometimes|boolean',
         ]);
 
